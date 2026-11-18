@@ -34,6 +34,10 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
     };
   });
 
+  const deepCohorts = scenario.cohorts.filter(c => c.level >= 7 && c.requestedSlots > 0);
+  const deepServed = deepCohorts.filter(c => (result.got[c.id] ?? 0) > 0);
+  const allDeepServed = deepCohorts.length > 0 && deepServed.length === deepCohorts.length;
+
   return (
     <section className="unmet-guide-section no-print" aria-label="Crew Inquiry Reference">
       <div className="unmet-header">
@@ -61,7 +65,7 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
               <div className="unmet-card-identity">
                 <span className="unmet-crew-name">{cohort.name}</span>
                 <span className="unmet-crew-meta">
-                  Level {cohort.level} · {cohort.populationPeople} crew · {cohort.shiftLabel}
+                  Level {cohort.level} · {cohort.populationPeople} crew · Shift: {cohort.shiftLabel}
                 </span>
               </div>
               <div className="unmet-card-metric">
@@ -84,7 +88,7 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
               <div className="unmet-timing-note">
                 {scheduled > 0 ? (
                   <span>
-                    Timing: {inWakeWindow} of {scheduled} sessions placed in primary wake window.
+                    Timing: {inWakeWindow} of {scheduled} sessions placed in planned wake window.
                   </span>
                 ) : (
                   <span className="unmet-unserved">
@@ -98,9 +102,17 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
       </div>
 
       <div className="unmet-equity-footer">
-        <div className="equity-badge" aria-hidden="true">EQUITY ASSURANCE</div>
+        <div className="equity-badge" aria-hidden="true">EQUITY EVALUATION</div>
         <p className="equity-note">
-          Under SECOND SUN, no deep-level sector is completely blacked out. Every crew retains access to bright-light fixtures, whereas conventional seniority and upper-level preference allocate 100% of rationed power to Levels 2–3 while leaving lower levels at zero.
+          {allDeepServed ? (
+            <>
+              Under the current schedule, all <strong>{deepCohorts.length} deep-level workgroups</strong> (Levels 7–9) received scheduled bright-light sessions. Under the Directorate upper-level priority baseline at this exact power budget, deep-level crews receive zero sessions because all power is reserved for upper administrative sectors.
+            </>
+          ) : (
+            <>
+              Under current power constraints ({scenario.budgetKWh.toFixed(2)} kWh), <strong>{deepServed.length} of {deepCohorts.length} deep-level workgroups</strong> received scheduled sessions. The progressive-filling heuristic distributes remaining power to avoid total sector abandonment where capacity allows.
+            </>
+          )}
         </p>
       </div>
     </section>

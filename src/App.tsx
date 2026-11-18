@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import type { Scenario, PolicyMode } from './domain/types';
+import type { Scenario, PolicyMode, ScheduleResult } from './domain/types';
 import { multilevel } from './domain/presets';
 import { useScheduler } from './hooks/useScheduler';
 import { downloadScheduleCsv } from './utils/export';
+import {
+  calculateOperationalMetrics,
+  computeEmergencyScheduleDelta,
+  type EmergencyScheduleDelta,
+} from './domain/runsheet';
 
 import { OperatorHeader } from './components/OperatorHeader';
 import { PowerControl } from './components/PowerControl';
+import { FacilityRoomsControl } from './components/FacilityRoomsControl';
+import { EmergencyDeltaBanner } from './components/EmergencyDeltaBanner';
 import { RunSheet } from './components/RunSheet';
 import { UnmetDemandGuide } from './components/UnmetDemandGuide';
 import { HandoverModal } from './components/HandoverModal';
@@ -32,6 +39,12 @@ export function App() {
   const [isWhyScheduleOpen, setIsWhyScheduleOpen] = useState(false);
   const [isAboutScienceOpen, setIsAboutScienceOpen] = useState(false);
 
+  // Emergency Generator Failure Simulation State
+  const [emergencyBaseline, setEmergencyBaseline] = useState<{
+    previousResult: ScheduleResult;
+    previousBudgetKWh: number;
+  } | null>(null);
+
   // Live schedule solving across all three policies
   const { results, validationErrors, activeResult } = useScheduler(
     scenario,
@@ -42,9 +55,44 @@ export function App() {
     setScenario(prev => ({ ...prev, budgetKWh: Math.max(0, kwh) }));
   };
 
+  const handleToggleRoom = (roomId: string) => {
+    setScenario(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(r => (r.id === roomId ? { ...r, enabled: !r.enabled } : r)),
+    }));
+  };
+
+  const handleSimulateGeneratorFailure = () => {
+    if (emergencyBaseline) {
+      // Already simulated: toggle/restore back to previous budget
+      setScenario(prev => ({ ...prev, budgetKWh: emergencyBaseline.previousBudgetKWh }));
+      setEmergencyBaseline(null);
+    } else {
+      // Save current active result as baseline, and lower power to 25% emergency (0.80 kWh)
+      setEmergencyBaseline({
+        previousResult: activeResult,
+        previousBudgetKWh: scenario.budgetKWh,
+      });
+      setScenario(prev => ({ ...prev, budgetKWh: 0.80 }));
+    }
+  };
+
+  const handleRestoreEmergency = () => {
+    if (emergencyBaseline) {
+      setScenario(prev => ({ ...prev, budgetKWh: emergencyBaseline.previousBudgetKWh }));
+      setEmergencyBaseline(null);
+    }
+  };
+
+  const handleAcknowledgeEmergency = () => {
+    // Keep the emergency plan active, dismissing the delta banner
+    setEmergencyBaseline(null);
+  };
+
   const handleReset = () => {
     setScenario(getDefaultScenario());
     setActivePolicy('fair');
+    setEmergencyBaseline(null);
   };
 
   const handlePrint = () => {
@@ -55,10 +103,22 @@ export function App() {
     downloadScheduleCsv(scenario, activeResult);
   };
 
+  // Accurate operational metrics calculation
+  const opMetrics = calculateOperationalMetrics(scenario, activeResult);
   const currentErrors = validationErrors[activePolicy] ?? [];
-  const totalResidents = scenario.cohorts.reduce((sum, c) => sum + c.populationPeople, 0);
-  const totalSessions = activeResult.assignments.length;
   const currentPct = Math.round((scenario.budgetKWh / BASE_BUDGET_KWH) * 100);
+
+  // Calculate live emergency delta if contingency simulation is active
+  let emergencyDelta: EmergencyScheduleDelta | null = null;
+  if (emergencyBaseline) {
+    emergencyDelta = computeEmergencyScheduleDelta(
+      scenario,
+      emergencyBaseline.previousResult,
+      activeResult,
+    );
+  }
+
+  const activeRoomIds = new Set(activeResult.assignments.map(a => a.roomId));
 
   return (
     <div className="operator-app-shell">
@@ -83,12 +143,12 @@ export function App() {
           </div>
         )}
 
-        {/* HERO: The Situation & Quick Status Strip */}
+        {/* HERO: The Situation & Corrected Metrics Strip */}
         <section className="operator-hero no-print" aria-label="Overview">
           <div className="hero-eyebrow">FACILITY OPERATIONS · SECTOR 4 GEOTHERMAL RATIONING</div>
           <h1 className="hero-title">Tomorrow's Lighting Operations Plan</h1>
           <p className="hero-lede">
-            Under Sector 4 geothermal rationing ({currentPct}% capacity), discretionary bright-light rooms are capped at {scenario.budgetKWh.toFixed(2)} kWh. Below is the operational unlock timetable for tomorrow's shifts.
+            Under Sector 4 geothermal rationing ({currentPct}% capacity), discretionary bright-light rooms are capped at {scenario.budgetKWh.toFixed(2)} kWh. Below is the operational unlock timetable for tomorrow's shifts across {opMetrics.levelSpanText}.
           </p>
 
           <div className="hero-specs-strip">
@@ -98,24 +158,46 @@ export function App() {
             </div>
             <div className="spec-divider" aria-hidden="true" />
             <div className="spec-item">
-              <span className="spec-val">{totalSessions} Sessions</span>
-              <span className="spec-label">Scheduled Across 24 Hours ({totalSessions * 30} min total)</span>
+              <span className="spec-val">{opMetrics.totalSessions} Sessions</span>
+              <span className="spec-label">Scheduled ({opMetrics.personSessions} Person-Sessions)</span>
             </div>
             <div className="spec-divider" aria-hidden="true" />
             <div className="spec-item">
-              <span className="spec-val">{totalResidents} Residents</span>
-              <span className="spec-label">Served Across Levels 2 through 8</span>
+              <span className="spec-val">
+                {opMetrics.residentsServed} of {opMetrics.residentsAffected}
+              </span>
+              <span className="spec-label">Residents Reached ({opMetrics.levelSpanText})</span>
             </div>
           </div>
         </section>
+
+        {/* EMERGENCY CONTINGENCY BANNER: Shown when Generator Failure simulation is active */}
+        {emergencyDelta && (
+          <EmergencyDeltaBanner
+            delta={emergencyDelta}
+            onRestore={handleRestoreEmergency}
+            onAcknowledge={handleAcknowledgeEmergency}
+          />
+        )}
 
         {/* POWER CONTROL: Minimalist Interactive Energy Slider */}
         <PowerControl
           budgetKWh={scenario.budgetKWh}
           baseBudgetKWh={BASE_BUDGET_KWH}
           onBudgetChange={handleBudgetChange}
-          sessionsCount={totalSessions}
-          residentsCount={totalResidents}
+          sessionsCount={opMetrics.totalSessions}
+          residentsAffected={opMetrics.residentsAffected}
+          residentsServed={opMetrics.residentsServed}
+          personSessions={opMetrics.personSessions}
+          onSimulateGeneratorFailure={handleSimulateGeneratorFailure}
+          isEmergencySimulated={emergencyBaseline !== null}
+        />
+
+        {/* OPERATIONAL EDITING: Room Availability & Maintenance Toggles */}
+        <FacilityRoomsControl
+          rooms={scenario.rooms}
+          onToggleRoom={handleToggleRoom}
+          activeRoomIds={activeRoomIds}
         />
 
         {/* CENTERPIECE: The Timetable / Run Sheet for Tomorrow */}

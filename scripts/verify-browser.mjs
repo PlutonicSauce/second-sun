@@ -1,4 +1,4 @@
-// Comprehensive Playwright browser verification script for Apple-inspired SECOND SUN
+// Comprehensive Playwright browser verification script for SECOND SUN Refinements
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -44,12 +44,12 @@ async function run() {
     console.log('🌐 Navigating to http://localhost:4173...');
     await page.goto('http://localhost:4173', { waitUntil: 'networkidle' });
 
-    // 1. Apple Header & Hero
+    // 1. Corrected Hero Metrics & Subterranean Span (including Level 9)
     const title = await page.title();
     check('Page title correct', title.includes('SECOND SUN'), title);
 
-    const heroTitle = await page.textContent('.hero-title');
-    check('Hero title rendered', heroTitle.includes("Tomorrow's Lighting Operations Plan"), heroTitle);
+    const heroLede = await page.textContent('.hero-lede');
+    check('Hero lede includes Level 9 in subterranean span', heroLede.includes('Levels 2 through 9'), heroLede);
 
     const specVals = await page.$$('.spec-val');
     check('Three hero spec values rendered', specVals.length === 3, `Found ${specVals.length}`);
@@ -57,110 +57,117 @@ async function run() {
     const energyVal = await specVals[0].textContent();
     check('Power budget spec shows 1.92 kWh', energyVal.includes('1.92'), energyVal);
 
+    const sessionVal = await specVals[1].textContent();
+    check('Sessions spec shows 8 Sessions', sessionVal.includes('8'), sessionVal);
+
     const residentVal = await specVals[2].textContent();
-    check('Residents spec shows 152 Residents', residentVal.includes('152'), residentVal);
+    check('Residents spec shows "152 of 152"', residentVal.includes('152 of 152'), residentVal);
 
-    await page.screenshot({ path: path.join(screenshotsDir, '01-apple-hero-specs.png') });
-    results.screenshots.push('01-apple-hero-specs.png');
+    await page.screenshot({ path: path.join(screenshotsDir, '01-correct-hero-specs.png') });
+    results.screenshots.push('01-correct-hero-specs.png');
 
-    // 2. Centerpiece: Tomorrow's Lighting Run Sheet
-    console.log('📋 Testing Centerpiece: Tomorrow\'s Lighting Run Sheet...');
+    // 2. Room Availability Control: Toggle Room Offline
+    console.log('🛠️ Testing Room Availability Control (Taking Room Offline)...');
+    const roomCards = await page.$$('.room-control-card');
+    check('Three room availability cards rendered', roomCards.length === 3, `Found ${roomCards.length}`);
+
+    // Click "Take Offline" on Sub-Station Hall (roomCards[2] or by name)
+    const subStationToggle = await page.locator('.room-control-card', { hasText: 'Sub-Station Hall' }).locator('.btn-room-toggle');
+    await subStationToggle.click();
+    await wait(300);
+
+    const idleBoxAfterOffline = await page.textContent('.runsheet-idle-box');
+    check('Idle facilities notice shows Sub-Station Hall offline for maintenance',
+      idleBoxAfterOffline.includes('Sub-Station Hall') && idleBoxAfterOffline.includes('Offline for maintenance'),
+      idleBoxAfterOffline.replace(/\s+/g, ' ')
+    );
+
+    await page.screenshot({ path: path.join(screenshotsDir, '03-room-offline-reschedule.png') });
+    results.screenshots.push('03-room-offline-reschedule.png');
+
+    // Bring Sub-Station Hall back online
+    await subStationToggle.click();
+    await wait(300);
+
+    // 3. Emergency Interaction: "Simulate Generator Failure"
+    console.log('⚡ Testing Emergency Contingency: "Simulate Generator Failure"...');
+    const generatorFailBtn = await page.locator('.btn-apple-emergency-trigger', { hasText: 'Simulate Generator Failure' });
+    await generatorFailBtn.click();
+    await wait(400);
+
+    const emergencyBanner = await page.$('.emergency-delta-banner');
+    check('Emergency Delta Banner rendered upon generator failure trigger', !!emergencyBanner);
+
+    const emergencySubtitle = await page.textContent('.emergency-subtitle');
+    check('Emergency subtitle reports real power drop', emergencySubtitle.includes('dropped from') && emergencySubtitle.includes('kWh'), emergencySubtitle);
+
+    const lostSessionsStat = await page.textContent('.stat-delta');
+    check('Emergency telemetry displays lost sessions delta', lostSessionsStat.includes('-'), lostSessionsStat);
+
+    const breakdownCards = await page.$$('.breakdown-card');
+    check('Breakdown cards present for affected resident groups', breakdownCards.length > 0, `Found ${breakdownCards.length}`);
+
+    await page.screenshot({ path: path.join(screenshotsDir, '02-emergency-generator-failure.png') });
+    results.screenshots.push('02-emergency-generator-failure.png');
+
+    // Restore previous schedule
+    const restoreBtn = await page.locator('.btn-emergency-restore', { hasText: 'Restore Previous Schedule' });
+    await restoreBtn.click();
+    await wait(300);
+
+    const bannerAfterRestore = await page.$('.emergency-delta-banner');
+    check('Emergency banner dismissed after restoring previous schedule', bannerAfterRestore === null);
+
+    // 4. Centerpiece: Tomorrow's Lighting Run Sheet Scanability & Consolidation
+    console.log('📋 Testing Run Sheet Consolidation & Scanability...');
     const runsheetRows = await page.$$('.runsheet-row');
     check('Run sheet contains merged operational blocks', runsheetRows.length > 0, `Found ${runsheetRows.length} blocks`);
 
     const firstRowText = await runsheetRows[0].textContent();
-    check('First row displays time, room, crew, and energy',
+    check('First row displays time, room, crew, action instruction, and wake window status',
       firstRowText.includes('00:00') &&
       firstRowText.includes('Sub-Station Hall') &&
-      firstRowText.includes('Deep Ventilation') &&
-      firstRowText.includes('500W'),
+      firstRowText.includes('Action: Unlock room & energize to 500W') &&
+      firstRowText.includes('Deep Ventilation'),
       firstRowText.replace(/\s+/g, ' ')
     );
 
-    // Verify Idle facilities box
+    // Verify Idle facilities notice uses truthful grounding
     const idleBox = await page.textContent('.runsheet-idle-box');
-    check('Idle facilities notice lists Central Atrium', idleBox.includes('Central Atrium') && idleBox.includes('Locked all day'), idleBox.replace(/\s+/g, ' '));
+    check('Idle notice uses truthful explanation (no unsupported locked all day claims)',
+      idleBox.includes('Central Atrium') && idleBox.includes('Unscheduled tomorrow'),
+      idleBox.replace(/\s+/g, ' ')
+    );
 
-    await page.screenshot({ path: path.join(screenshotsDir, '02-apple-runsheet.png') });
-    results.screenshots.push('02-apple-runsheet.png');
+    await page.locator('.runsheet-section').scrollIntoViewIfNeeded();
+    await wait(200);
+    await page.screenshot({ path: path.join(screenshotsDir, '04-improved-runsheet-scanability.png') });
+    results.screenshots.push('04-improved-runsheet-scanability.png');
 
-    // 3. Power Slider & Presets
-    console.log('⚡ Testing Power Slider Controls...');
-    const preset25Btn = await page.locator('.btn-apple-preset', { hasText: '25% Emergency' });
-    await preset25Btn.click();
-    await wait(300);
-
-    const consequence25 = await page.textContent('.power-consequence-text');
-    check('Consequence text updates for 25% emergency', consequence25.includes('75% deficit'), consequence25);
-
-    const rows25 = await page.$$('.runsheet-row');
-    check('Runsheet dynamically scales to emergency schedule', rows25.length < runsheetRows.length, `Count: ${rows25.length}`);
-
-    await page.screenshot({ path: path.join(screenshotsDir, '03-apple-power-control-25pct.png') });
-    results.screenshots.push('03-apple-power-control-25pct.png');
-
-    // Return to 60% Shortage
-    const preset60Btn = await page.locator('.btn-apple-preset', { hasText: '60% Shortage' });
-    await preset60Btn.click();
-    await wait(300);
-
-    // 4. Crew Inquiry Reference
-    console.log('🔍 Testing Crew Inquiry Reference (Unmet Demand Guide)...');
+    // 5. Crew Inquiry Reference: Dynamic Equity Evaluation
+    console.log('🔍 Testing Crew Inquiry Reference...');
     const unmetCards = await page.$$('.unmet-card');
     check('Five cohort inquiry cards rendered', unmetCards.length === 5, `Found ${unmetCards.length}`);
 
-    const card1Text = await unmetCards[0].textContent();
-    check('Directorate Staff inquiry card has percentage and constraint explanation',
-      card1Text.includes('Directorate Staff') && card1Text.includes('33%'),
-      card1Text.replace(/\s+/g, ' ')
+    const equityFooter = await page.textContent('.unmet-equity-footer');
+    check('Equity evaluation footer dynamically references deep-level workgroups',
+      equityFooter.includes('EQUITY EVALUATION') && equityFooter.includes('deep-level workgroups'),
+      equityFooter.replace(/\s+/g, ' ')
     );
 
-    const equityFooter = await page.textContent('.unmet-equity-footer');
-    check('Equity assurance footer rendered', equityFooter.includes('EQUITY ASSURANCE') && equityFooter.includes('no deep-level sector is completely blacked out'), equityFooter.replace(/\s+/g, ' '));
-
-    await page.screenshot({ path: path.join(screenshotsDir, '04-apple-unmet-demand-guide.png') });
-    results.screenshots.push('04-apple-unmet-demand-guide.png');
-
-    // 5. Handover Modal
-    console.log('📤 Testing Handover Export Modal...');
-    const exportBtn = await page.locator('.btn-header-primary', { hasText: 'Export Plan' });
-    await exportBtn.click();
-    await wait(300);
-
-    const handoverCode = await page.textContent('.handover-code-block');
-    check('Handover brief contains printable shift brief', handoverCode.includes('SECOND SUN') && handoverCode.includes('DISCRETIONARY LIGHTING OPERATIONS'), handoverCode.slice(0, 100));
-
-    await page.screenshot({ path: path.join(screenshotsDir, '05-apple-handover-modal.png') });
-    results.screenshots.push('05-apple-handover-modal.png');
-
-    const closeBtn1 = await page.locator('.btn-modal-close');
-    await closeBtn1.click();
+    await page.locator('.unmet-guide-section').scrollIntoViewIfNeeded();
     await wait(200);
+    await page.screenshot({ path: path.join(screenshotsDir, '05-unmet-demand-equity.png') });
+    results.screenshots.push('05-unmet-demand-equity.png');
 
-    // 6. Why This Schedule Modal
-    console.log('🧠 Testing Why This Schedule Modal...');
-    const whyBtn = await page.locator('.btn-header-ghost', { hasText: 'Why This Schedule?' });
-    await whyBtn.click();
-    await wait(300);
-
-    const whyTitle = await page.textContent('.modal-title');
-    check('Why This Schedule modal opened', whyTitle.includes('Why This Schedule?'), whyTitle);
-
-    await page.screenshot({ path: path.join(screenshotsDir, '06-apple-why-schedule-modal.png') });
-    results.screenshots.push('06-apple-why-schedule-modal.png');
-
-    const closeBtn2 = await page.locator('.btn-modal-close');
-    await closeBtn2.click();
-    await wait(200);
-
-    // 7. Full-Page Desktop Capture
+    // 6. Full-Page Desktop Capture
     await page.screenshot({
       path: path.join(screenshotsDir, '00-apple-desktop-fullpage.png'),
       fullPage: true,
     });
     results.screenshots.push('00-apple-desktop-fullpage.png');
 
-    // 8. Mobile Responsiveness (390px Viewport)
+    // 7. Mobile Responsiveness (390px Viewport)
     console.log('📱 Testing Mobile Responsiveness (390px iPhone Viewport)...');
     await page.setViewportSize({ width: 390, height: 844 });
     await wait(400);

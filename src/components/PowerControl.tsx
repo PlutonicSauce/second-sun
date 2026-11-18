@@ -5,7 +5,11 @@ interface PowerControlProps {
   baseBudgetKWh: number;
   onBudgetChange: (kwh: number) => void;
   sessionsCount: number;
-  residentsCount: number;
+  residentsAffected: number;
+  residentsServed: number;
+  personSessions: number;
+  onSimulateGeneratorFailure: () => void;
+  isEmergencySimulated: boolean;
 }
 
 export const PowerControl: React.FC<PowerControlProps> = ({
@@ -13,7 +17,11 @@ export const PowerControl: React.FC<PowerControlProps> = ({
   baseBudgetKWh,
   onBudgetChange,
   sessionsCount,
-  residentsCount,
+  residentsAffected,
+  residentsServed,
+  personSessions,
+  onSimulateGeneratorFailure,
+  isEmergencySimulated,
 }) => {
   const currentPct = baseBudgetKWh > 0 ? Math.round((budgetKWh / baseBudgetKWh) * 100) : 100;
 
@@ -77,15 +85,28 @@ export const PowerControl: React.FC<PowerControlProps> = ({
             </button>
           </div>
 
-          <div className="power-consequence-text">
-            {currentPct < 100 ? (
-              <span>
-                Operating under a <strong>{100 - currentPct}% deficit</strong>. {sessionsCount} sessions scheduled tomorrow for {residentsCount} residents.
-              </span>
-            ) : (
-              <span>Grid at full capacity. All requested daytime sessions scheduled.</span>
-            )}
+          <div className="power-actions-group">
+            <button
+              type="button"
+              className={`btn-apple-emergency-trigger ${isEmergencySimulated ? 'btn-emergency-active' : ''}`}
+              onClick={onSimulateGeneratorFailure}
+              title="Simulate sudden geothermal generator trip to test emergency schedule"
+            >
+              ⚡ Simulate Generator Failure
+            </button>
           </div>
+        </div>
+
+        <div className="power-consequence-text">
+          {currentPct < 100 ? (
+            <span>
+              Operating under a <strong>{100 - currentPct}% deficit</strong>. {sessionsCount} sessions ({personSessions} person-sessions) scheduled tomorrow — accommodating <strong>{residentsServed} of {residentsAffected}</strong> affected residents.
+            </span>
+          ) : (
+            <span>
+              Grid at full capacity (100%). {sessionsCount} sessions ({personSessions} person-sessions) scheduled for {residentsServed} of {residentsAffected} residents.
+            </span>
+          )}
         </div>
       </div>
     </section>
