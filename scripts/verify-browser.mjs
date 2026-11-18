@@ -1,4 +1,4 @@
-// Comprehensive Playwright browser verification script for SECOND SUN Operator Experience
+// Comprehensive Playwright browser verification script for Apple-inspired SECOND SUN
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -44,193 +44,139 @@ async function run() {
     console.log('🌐 Navigating to http://localhost:4173...');
     await page.goto('http://localhost:4173', { waitUntil: 'networkidle' });
 
-    // 1. Screen 1: The Situation (Incident Overview)
+    // 1. Apple Header & Hero
     const title = await page.title();
     check('Page title correct', title.includes('SECOND SUN'), title);
 
-    const horizonText = await page.textContent('.horizon-text');
-    check('Horizon indicator rendered', horizonText.includes('CYCLE 2087-D42') && horizonText.includes('24-HOUR'), horizonText);
+    const heroTitle = await page.textContent('.hero-title');
+    check('Hero title rendered', heroTitle.includes("Tomorrow's Lighting Operations Plan"), heroTitle);
 
-    const headline = await page.textContent('.incident-headline');
-    check('Incident headline rendered', headline.includes('lost 40% of its available daylight power'), headline);
+    const specVals = await page.$$('.spec-val');
+    check('Three hero spec values rendered', specVals.length === 3, `Found ${specVals.length}`);
 
-    const telemetryCards = await page.$$('.telemetry-card');
-    check('Four telemetry cards rendered', telemetryCards.length === 4, `Found ${telemetryCards.length}`);
+    const energyVal = await specVals[0].textContent();
+    check('Power budget spec shows 1.92 kWh', energyVal.includes('1.92'), energyVal);
 
-    const energyVal = await telemetryCards[0].textContent();
-    check('Energy telemetry shows 1.92 kWh (60%)', energyVal.includes('1.92') && energyVal.includes('60%'), energyVal.replace(/\s+/g, ' '));
+    const residentVal = await specVals[2].textContent();
+    check('Residents spec shows 152 Residents', residentVal.includes('152'), residentVal);
 
-    const popVal = await telemetryCards[1].textContent();
-    check('Population telemetry shows 152 residents', popVal.includes('152'), popVal.replace(/\s+/g, ' '));
+    await page.screenshot({ path: path.join(screenshotsDir, '01-apple-hero-specs.png') });
+    results.screenshots.push('01-apple-hero-specs.png');
 
-    const unmetVal = await telemetryCards[3].textContent();
-    check('Unmet requests shows 10 sessions', unmetVal.includes('10'), unmetVal.replace(/\s+/g, ' '));
+    // 2. Centerpiece: Tomorrow's Lighting Run Sheet
+    console.log('📋 Testing Centerpiece: Tomorrow\'s Lighting Run Sheet...');
+    const runsheetRows = await page.$$('.runsheet-row');
+    check('Run sheet contains merged operational blocks', runsheetRows.length > 0, `Found ${runsheetRows.length} blocks`);
 
-    // Capture Screen 1 Overview
-    await page.screenshot({ path: path.join(screenshotsDir, '01-operator-situation-overview.png') });
-    results.screenshots.push('01-operator-situation-overview.png');
+    const firstRowText = await runsheetRows[0].textContent();
+    check('First row displays time, room, crew, and energy',
+      firstRowText.includes('00:00') &&
+      firstRowText.includes('Sub-Station Hall') &&
+      firstRowText.includes('Deep Ventilation') &&
+      firstRowText.includes('500W'),
+      firstRowText.replace(/\s+/g, ' ')
+    );
 
-    // 2. Screen 2: Recommended Operations Plan (Agenda View)
-    console.log('📋 Testing Screen 2: Recommended Operations Agenda...');
-    const agendaCards = await page.$$('.agenda-card');
-    check('Operations agenda displays 8 scheduled sessions', agendaCards.length === 8, `Found ${agendaCards.length}`);
+    // Verify Idle facilities box
+    const idleBox = await page.textContent('.runsheet-idle-box');
+    check('Idle facilities notice lists Central Atrium', idleBox.includes('Central Atrium') && idleBox.includes('Locked all day'), idleBox.replace(/\s+/g, ' '));
 
-    // Verify first card details
-    const firstCardText = await agendaCards[0].textContent();
-    check('First session starts at 00:00 in Sub-Station Hall', firstCardText.includes('00:00') && firstCardText.includes('Sub-Station Hall'), firstCardText.replace(/\s+/g, ' '));
-    check('First session assigned to Deep Ventilation', firstCardText.includes('Deep Ventilation'), firstCardText.replace(/\s+/g, ' '));
-    check('Energy shows dynamically computed kWh', firstCardText.includes('0.25 kWh') || firstCardText.includes('0.17 kWh'), firstCardText);
+    await page.screenshot({ path: path.join(screenshotsDir, '02-apple-runsheet.png') });
+    results.screenshots.push('02-apple-runsheet.png');
 
-    // Scroll to operations plan section for agenda capture
-    await page.locator('.operations-plan-section').scrollIntoViewIfNeeded();
+    // 3. Power Slider & Presets
+    console.log('⚡ Testing Power Slider Controls...');
+    const preset25Btn = await page.locator('.btn-apple-preset', { hasText: '25% Emergency' });
+    await preset25Btn.click();
     await wait(300);
 
-    await page.screenshot({ path: path.join(screenshotsDir, '02-operator-recommended-plan-agenda.png') });
-    results.screenshots.push('02-operator-recommended-plan-agenda.png');
+    const consequence25 = await page.textContent('.power-consequence-text');
+    check('Consequence text updates for 25% emergency', consequence25.includes('75% deficit'), consequence25);
 
-    // Toggle to "By Room" View
-    const byRoomBtn = await page.locator('.mode-btn', { hasText: 'By Room' });
-    await byRoomBtn.click();
+    const rows25 = await page.$$('.runsheet-row');
+    check('Runsheet dynamically scales to emergency schedule', rows25.length < runsheetRows.length, `Count: ${rows25.length}`);
+
+    await page.screenshot({ path: path.join(screenshotsDir, '03-apple-power-control-25pct.png') });
+    results.screenshots.push('03-apple-power-control-25pct.png');
+
+    // Return to 60% Shortage
+    const preset60Btn = await page.locator('.btn-apple-preset', { hasText: '60% Shortage' });
+    await preset60Btn.click();
     await wait(300);
 
-    const roomCards = await page.$$('.room-schedule-card');
-    check('Three room schedule cards rendered', roomCards.length === 3, `Found ${roomCards.length}`);
+    // 4. Crew Inquiry Reference
+    console.log('🔍 Testing Crew Inquiry Reference (Unmet Demand Guide)...');
+    const unmetCards = await page.$$('.unmet-card');
+    check('Five cohort inquiry cards rendered', unmetCards.length === 5, `Found ${unmetCards.length}`);
 
-    await page.screenshot({ path: path.join(screenshotsDir, '03-operator-plan-by-room.png') });
-    results.screenshots.push('03-operator-plan-by-room.png');
+    const card1Text = await unmetCards[0].textContent();
+    check('Directorate Staff inquiry card has percentage and constraint explanation',
+      card1Text.includes('Directorate Staff') && card1Text.includes('33%'),
+      card1Text.replace(/\s+/g, ' ')
+    );
 
-    // Toggle back to Agenda View
-    const agendaBtn = await page.locator('.mode-btn', { hasText: 'Agenda View' });
-    await agendaBtn.click();
-    await wait(200);
+    const equityFooter = await page.textContent('.unmet-equity-footer');
+    check('Equity assurance footer rendered', equityFooter.includes('EQUITY ASSURANCE') && equityFooter.includes('no deep-level sector is completely blacked out'), equityFooter.replace(/\s+/g, ' '));
 
-    // 3. Screen 3: Adjust the Situation (Real-Time Energy & Room Controls)
-    console.log('⚡ Testing Screen 3: Energy & Facility Controls...');
-    const p25Btn = await page.locator('.preset-btn', { hasText: '25% Crisis' });
-    await p25Btn.click();
-    await wait(300);
+    await page.screenshot({ path: path.join(screenshotsDir, '04-apple-unmet-demand-guide.png') });
+    results.screenshots.push('04-apple-unmet-demand-guide.png');
 
-    const feedbackText25 = await page.textContent('.impact-feedback-banner');
-    check('Impact banner updates for 25% crisis', feedbackText25.includes('25% available') && feedbackText25.includes('3 sessions'), feedbackText25);
-
-    const agendaCards25 = await page.$$('.agenda-card');
-    check('Agenda scaled down to 3 sessions under 25% crisis', agendaCards25.length === 3, `Found ${agendaCards25.length}`);
-
-    // Test 100% preset
-    const p100Btn = await page.locator('.preset-btn', { hasText: '100% Normal' });
-    await p100Btn.click();
-    await wait(300);
-
-    const feedbackText100 = await page.textContent('.impact-feedback-banner');
-    check('Impact banner updates for 100% normal grid', feedbackText100.includes('100% available'), feedbackText100);
-
-    // Return to 60% default
-    const p60Btn = await page.locator('.preset-btn', { hasText: '60% Shortage' });
-    await p60Btn.click();
-    await wait(300);
-
-    // Test Room Offline Toggle (toggle Sub-Station Hall)
-    const roomToggles = await page.$$('.btn-room-status');
-    check('Three room online/offline buttons present', roomToggles.length === 3);
-    await roomToggles[2].click(); // Toggle Sub-Station Hall offline
-    await wait(300);
-
-    const feedbackOffline = await page.textContent('.impact-feedback-banner');
-    check('Impact banner reports Sub-Station Hall offline', feedbackOffline.includes('Sub-Station Hall offline'), feedbackOffline);
-
-    await page.screenshot({ path: path.join(screenshotsDir, '04-operator-controls-adjusted.png') });
-    results.screenshots.push('04-operator-controls-adjusted.png');
-
-    // Toggle Sub-Station Hall back online
-    await roomToggles[2].click();
-    await wait(300);
-
-    // 4. Screen 4: Understand the Consequences (Impact & Unmet Demand)
-    console.log('🔍 Testing Screen 4: Consequences & Unmet Demand...');
-    const tierBanner = await page.textContent('.tier-equity-card');
-    check('Tier equity card shows Upper and Deep coverage', tierBanner.includes('Upper Sectors') && tierBanner.includes('Deep Infrastructure'), tierBanner.replace(/\s+/g, ' '));
-    check('Level Inequality Gap is -17%', tierBanner.includes('-17%'), tierBanner);
-
-    const consequenceGroups = await page.$$('.consequence-group-card');
-    check('Three consequence groups rendered', consequenceGroups.length === 3);
-
-    const partialGroupText = await consequenceGroups[0].textContent();
-    check('Partially accommodated shows 5 cohorts', partialGroupText.includes('Partially Accommodated (5)'));
-    check('Includes constraint explanations', partialGroupText.includes('Constraint:'));
-
-    // Scroll to consequences section
-    await page.locator('.impact-consequences-section').scrollIntoViewIfNeeded();
-    await wait(300);
-
-    await page.screenshot({ path: path.join(screenshotsDir, '05-operator-consequences-unmet-demand.png') });
-    results.screenshots.push('05-operator-consequences-unmet-demand.png');
-
-    // 5. Screen 5: Put the Plan into Action (Handover Modal)
-    console.log('📤 Testing Screen 5: Handover Modal & Data Export...');
+    // 5. Handover Modal
+    console.log('📤 Testing Handover Export Modal...');
     const exportBtn = await page.locator('.btn-header-primary', { hasText: 'Export Plan' });
     await exportBtn.click();
     await wait(300);
 
-    const handoverTitle = await page.textContent('#handover-title');
-    check('Handover modal opened', handoverTitle.includes('Shift Handover Brief'), handoverTitle);
-
     const handoverCode = await page.textContent('.handover-code-block');
-    check('Handover brief contains chronological timetable', handoverCode.includes('CHRONOLOGICAL OPERATIONS AGENDA') && handoverCode.includes('Deep Ventilation'), handoverCode.slice(0, 100));
-    check('Brief contains supervisor sign-off area', handoverCode.includes('Supervisor Sign-off'));
+    check('Handover brief contains printable shift brief', handoverCode.includes('SECOND SUN') && handoverCode.includes('DISCRETIONARY LIGHTING OPERATIONS'), handoverCode.slice(0, 100));
 
-    await page.screenshot({ path: path.join(screenshotsDir, '06-operator-handover-modal.png') });
-    results.screenshots.push('06-operator-handover-modal.png');
+    await page.screenshot({ path: path.join(screenshotsDir, '05-apple-handover-modal.png') });
+    results.screenshots.push('05-apple-handover-modal.png');
 
-    const closeBtn1 = await page.locator('.modal-footer .btn-secondary', { hasText: 'Close' });
+    const closeBtn1 = await page.locator('.btn-modal-close');
     await closeBtn1.click();
     await wait(200);
 
-    // 6. Supporting Intelligence: "Why This Schedule?" Modal
-    console.log('🧠 Testing Supporting Intelligence: Why This Schedule? Modal...');
+    // 6. Why This Schedule Modal
+    console.log('🧠 Testing Why This Schedule Modal...');
     const whyBtn = await page.locator('.btn-header-ghost', { hasText: 'Why This Schedule?' });
     await whyBtn.click();
     await wait(300);
 
-    const whyTitle = await page.textContent('#why-schedule-title');
+    const whyTitle = await page.textContent('.modal-title');
     check('Why This Schedule modal opened', whyTitle.includes('Why This Schedule?'), whyTitle);
 
-    const compTable = await page.$('.comparison-table');
-    check('Side-by-side policy comparison table present in modal', !!compTable);
+    await page.screenshot({ path: path.join(screenshotsDir, '06-apple-why-schedule-modal.png') });
+    results.screenshots.push('06-apple-why-schedule-modal.png');
 
-    await page.screenshot({ path: path.join(screenshotsDir, '07-operator-why-schedule-modal.png') });
-    results.screenshots.push('07-operator-why-schedule-modal.png');
-
-    const closeBtn2 = await page.locator('.modal-footer .btn-secondary', { hasText: 'Close' });
+    const closeBtn2 = await page.locator('.btn-modal-close');
     await closeBtn2.click();
     await wait(200);
 
     // 7. Full-Page Desktop Capture
     await page.screenshot({
-      path: path.join(screenshotsDir, '00-operator-desktop-fullpage.png'),
+      path: path.join(screenshotsDir, '00-apple-desktop-fullpage.png'),
       fullPage: true,
     });
-    results.screenshots.push('00-operator-desktop-fullpage.png');
+    results.screenshots.push('00-apple-desktop-fullpage.png');
 
     // 8. Mobile Responsiveness (390px Viewport)
     console.log('📱 Testing Mobile Responsiveness (390px iPhone Viewport)...');
     await page.setViewportSize({ width: 390, height: 844 });
     await wait(400);
 
-    const mobileHeadline = await page.textContent('.incident-headline');
-    check('Mobile headline renders cleanly', mobileHeadline.includes('lost 40%'));
-
-    const mobileAgendaCards = await page.$$('.agenda-card');
-    check('Mobile agenda cards present', mobileAgendaCards.length === 8);
+    const mobileHeroTitle = await page.textContent('.hero-title');
+    check('Mobile hero title renders cleanly', mobileHeroTitle.includes("Tomorrow's Lighting Operations Plan"));
 
     await page.screenshot({
-      path: path.join(screenshotsDir, '08-operator-mobile-390px.png'),
+      path: path.join(screenshotsDir, '07-apple-mobile-390px.png'),
       fullPage: false,
     });
     await page.screenshot({
-      path: path.join(screenshotsDir, '08-operator-mobile-390px-full.png'),
+      path: path.join(screenshotsDir, '07-apple-mobile-390px-full.png'),
       fullPage: true,
     });
-    results.screenshots.push('08-operator-mobile-390px.png', '08-operator-mobile-390px-full.png');
+    results.screenshots.push('07-apple-mobile-390px.png', '07-apple-mobile-390px-full.png');
 
     console.log('\n🎉 ALL OPERATOR E2E BROWSER CHECKS PASSED SUCCESSFULLY!');
     console.log(`📸 Saved ${results.screenshots.length} screenshots to ${screenshotsDir}`);

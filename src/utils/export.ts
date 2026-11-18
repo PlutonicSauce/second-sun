@@ -56,6 +56,10 @@ export function exportScenarioJson(
   URL.revokeObjectURL(url);
 }
 
+export function downloadScheduleCsv(scenario: Scenario, result: ScheduleResult): void {
+  exportScheduleCsv(scenario, { fair: result, 'first-come': result, directorate: result }, 'fair');
+}
+
 export function exportScheduleCsv(
   scenario: Scenario,
   results: Record<PolicyMode, ScheduleResult>,

@@ -2,12 +2,12 @@ import { useState } from 'react';
 import type { Scenario, PolicyMode } from './domain/types';
 import { multilevel } from './domain/presets';
 import { useScheduler } from './hooks/useScheduler';
+import { downloadScheduleCsv } from './utils/export';
 
 import { OperatorHeader } from './components/OperatorHeader';
-import { IncidentOverview } from './components/IncidentOverview';
-import { IncidentControls } from './components/IncidentControls';
-import { OperationsPlan } from './components/OperationsPlan';
-import { ImpactConsequences } from './components/ImpactConsequences';
+import { PowerControl } from './components/PowerControl';
+import { RunSheet } from './components/RunSheet';
+import { UnmetDemandGuide } from './components/UnmetDemandGuide';
 import { HandoverModal } from './components/HandoverModal';
 import { WhyThisScheduleModal } from './components/WhyThisScheduleModal';
 import { HowItWorksModal } from './components/HowItWorksModal';
@@ -26,7 +26,6 @@ function getDefaultScenario(): Scenario {
 export function App() {
   const [scenario, setScenario] = useState<Scenario>(getDefaultScenario);
   const [activePolicy, setActivePolicy] = useState<PolicyMode>('fair');
-  const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null);
 
   // Modals state
   const [isHandoverOpen, setIsHandoverOpen] = useState(false);
@@ -43,24 +42,27 @@ export function App() {
     setScenario(prev => ({ ...prev, budgetKWh: Math.max(0, kwh) }));
   };
 
-  const handleToggleRoom = (roomId: string) => {
-    setScenario(prev => ({
-      ...prev,
-      rooms: prev.rooms.map(r => (r.id === roomId ? { ...r, enabled: !r.enabled } : r)),
-    }));
-  };
-
   const handleReset = () => {
     setScenario(getDefaultScenario());
-    setSelectedCohortId(null);
     setActivePolicy('fair');
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadCsv = () => {
+    downloadScheduleCsv(scenario, activeResult);
+  };
+
   const currentErrors = validationErrors[activePolicy] ?? [];
+  const totalResidents = scenario.cohorts.reduce((sum, c) => sum + c.populationPeople, 0);
+  const totalSessions = activeResult.assignments.length;
+  const currentPct = Math.round((scenario.budgetKWh / BASE_BUDGET_KWH) * 100);
 
   return (
     <div className="operator-app-shell">
-      {/* Global Operator Navigation & Planning Horizon Header */}
+      {/* Global Operator Navigation Header */}
       <OperatorHeader
         onOpenWhyThisSchedule={() => setIsWhyScheduleOpen(true)}
         onOpenAboutScience={() => setIsAboutScienceOpen(true)}
@@ -81,54 +83,70 @@ export function App() {
           </div>
         )}
 
-        {/* SCREEN 1: The Situation (The Incident Overview) */}
-        <IncidentOverview
-          scenario={scenario}
-          result={activeResult}
-          baseBudgetKWh={BASE_BUDGET_KWH}
-        />
+        {/* HERO: The Situation & Quick Status Strip */}
+        <section className="operator-hero no-print" aria-label="Overview">
+          <div className="hero-eyebrow">FACILITY OPERATIONS · SECTOR 4 GEOTHERMAL RATIONING</div>
+          <h1 className="hero-title">Tomorrow's Lighting Operations Plan</h1>
+          <p className="hero-lede">
+            Under Sector 4 geothermal rationing ({currentPct}% capacity), discretionary bright-light rooms are capped at {scenario.budgetKWh.toFixed(2)} kWh. Below is the operational unlock timetable for tomorrow's shifts.
+          </p>
 
-        {/* SCREEN 3: Adjust the Situation (Real-Time Energy & Room Controls) */}
-        <IncidentControls
+          <div className="hero-specs-strip">
+            <div className="spec-item">
+              <span className="spec-val">{scenario.budgetKWh.toFixed(2)} kWh</span>
+              <span className="spec-label">Daily Power Cap ({currentPct}% of {BASE_BUDGET_KWH.toFixed(2)} kWh)</span>
+            </div>
+            <div className="spec-divider" aria-hidden="true" />
+            <div className="spec-item">
+              <span className="spec-val">{totalSessions} Sessions</span>
+              <span className="spec-label">Scheduled Across 24 Hours ({totalSessions * 30} min total)</span>
+            </div>
+            <div className="spec-divider" aria-hidden="true" />
+            <div className="spec-item">
+              <span className="spec-val">{totalResidents} Residents</span>
+              <span className="spec-label">Served Across Levels 2 through 8</span>
+            </div>
+          </div>
+        </section>
+
+        {/* POWER CONTROL: Minimalist Interactive Energy Slider */}
+        <PowerControl
           budgetKWh={scenario.budgetKWh}
           baseBudgetKWh={BASE_BUDGET_KWH}
           onBudgetChange={handleBudgetChange}
-          rooms={scenario.rooms}
-          onToggleRoom={handleToggleRoom}
-          result={activeResult}
+          sessionsCount={totalSessions}
+          residentsCount={totalResidents}
         />
 
-        {/* SCREEN 2: The Recommended Operating Plan (Core Centerpiece) */}
-        <OperationsPlan
+        {/* CENTERPIECE: The Timetable / Run Sheet for Tomorrow */}
+        <RunSheet
           scenario={scenario}
           result={activeResult}
-          selectedCohortId={selectedCohortId}
-          onSelectCohort={setSelectedCohortId}
-          onOpenHandover={() => setIsHandoverOpen(true)}
+          onPrint={handlePrint}
+          onDownloadCsv={handleDownloadCsv}
         />
 
-        {/* SCREEN 4: Understand the Consequences (Impact & Unmet Demand Analysis) */}
-        <ImpactConsequences
+        {/* SUPPORT: Unmet Demand Reference for Crew Inquiries */}
+        <UnmetDemandGuide
           scenario={scenario}
           result={activeResult}
-          selectedCohortId={selectedCohortId}
-          onSelectCohort={setSelectedCohortId}
+          onOpenWhyThisSchedule={() => setIsWhyScheduleOpen(true)}
         />
       </main>
 
       {/* Operator Footer */}
-      <footer className="operator-footer">
+      <footer className="operator-footer no-print">
         <div className="footer-content-inner">
           <div className="footer-left">
-            <strong>SECOND SUN</strong> — Facility Operations Planner · Life Underground Track (Patriot HackFest 2026)
+            <strong>SECOND SUN</strong> — Facility Operations Planner · The Hollow 2087
           </div>
           <div className="footer-right">
-            Deterministic progressive-filling heuristic. Integer watt-minute accounting. Life-safety lighting strictly excluded.
+            Deterministic progressive-filling heuristic. Integer watt-minute accounting. Life-safety emergency lighting strictly excluded.
           </div>
         </div>
       </footer>
 
-      {/* SCREEN 5: Put the Plan into Action (Handover & Data Export Modal) */}
+      {/* MODAL 1: Export Handover Plan (CSV, JSON, Shift Brief) */}
       <HandoverModal
         isOpen={isHandoverOpen}
         onClose={() => setIsHandoverOpen(false)}
@@ -137,7 +155,7 @@ export function App() {
         activePolicy={activePolicy}
       />
 
-      {/* SUPPORTING INTELLIGENCE: Why This Schedule? Modal */}
+      {/* MODAL 2: Why This Schedule? (Compare with Directorate & First-Come) */}
       <WhyThisScheduleModal
         isOpen={isWhyScheduleOpen}
         onClose={() => setIsWhyScheduleOpen(false)}
@@ -147,7 +165,7 @@ export function App() {
         onSelectPolicy={setActivePolicy}
       />
 
-      {/* SCIENTIFIC TRANSPARENCY & METHODOLOGY: About & Science Modal */}
+      {/* MODAL 3: About & Science (Disclosures, Biology, Methodology) */}
       <HowItWorksModal
         isOpen={isAboutScienceOpen}
         onClose={() => setIsAboutScienceOpen(false)}
