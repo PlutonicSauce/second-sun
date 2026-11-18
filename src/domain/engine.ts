@@ -156,7 +156,7 @@ export function solve(scenario: Scenario, mode: PolicyMode): ScheduleResult {
     }
   } else {
     // first-come or directorate: iterate cohorts, greedily fill each quota
-    let orderedCohorts = [...scenario.cohorts];
+    const orderedCohorts = [...scenario.cohorts];
     if (mode === 'directorate') {
       // Illustrative Directorate Policy (Simulated) — fictional, NOT actual government behavior.
       // Priority: largest population first; ties broken by cohort id ascending.
