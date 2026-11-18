@@ -88,17 +88,26 @@ npm run dev
 - **Remote:** `https://github.com/PlutonicSauce/second-sun.git` (tracked as `origin/main`)
 - **Push Status:** Verified pushed to remote `main`.
 - **Commits:**
-  1. `9914513`: Initial scaffold and domain engine
-  2. `6abd08a`: Untrack node_modules, update build config, add docs
+  1. `9914513`: feat: scaffold and TypeScript domain engine with full test suite
+  2. `6abd08a`: chore: untrack node_modules, update build config, and add submission docs
   3. `9bd737d`: feat: complete interactive operations UI, timeline visualization, and policy comparison
+  4. `7fa054a`: docs: update repository URL and submission metadata
+  5. `0a2150f`: feat: level-based Directorate policy, multi-level grid scenario, and browser E2E suite
 
 ---
 
-## 5. Next Steps for Submission
+## 5. Live Production Deployment
 
-1. **One-Click Deployment:**
-   Connect `https://github.com/PlutonicSauce/second-sun` to Vercel or Netlify (build command: `npm run build`, output dir: `dist`).
-2. **Record 60–90s Demo Video:**
-   Follow `DEMO_SCRIPT.md` walkthrough.
-3. **Submit:**
-   Use metadata in `SUBMISSION.md` before the deadline on **Friday, November 20, 2026 at 11:00 PM Eastern**.
+- **Hosting Platform:** Vercel (Production Deployment)
+- **Live URL:** [https://second-sun-rho.vercel.app](https://second-sun-rho.vercel.app)
+- **Deployment Status:** `Ready` (Verified on Vercel Dashboard)
+- **Production Build:** `npm run build` generates `dist/` in ~650ms.
+
+---
+
+## 6. Next Steps for Submission
+
+1. **Record 60–90s Demo Video:**
+   Follow `DEMO_SCRIPT.md` walkthrough on [https://second-sun-rho.vercel.app](https://second-sun-rho.vercel.app).
+2. **Submit:**
+   Submit via the Patriot HackFest portal using metadata in `SUBMISSION.md` before the deadline on **Friday, November 20, 2026 at 11:00 PM Eastern**.
