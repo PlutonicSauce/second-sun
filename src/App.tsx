@@ -1,25 +1,25 @@
 import { useState } from 'react';
 import type { Scenario, PolicyMode } from './domain/types';
-import { hollow } from './domain/presets';
+import { multilevel } from './domain/presets';
 import { useScheduler } from './hooks/useScheduler';
-import { exportScenarioJson, exportScheduleCsv } from './utils/export';
 
-import { Header } from './components/Header';
-import { CrisisBanner } from './components/CrisisBanner';
-import { KeyMetrics } from './components/KeyMetrics';
-import { BudgetControl } from './components/BudgetControl';
-import { ScenarioPicker } from './components/ScenarioPicker';
-import { Timeline } from './components/Timeline';
-import { CohortList } from './components/CohortList';
-import { RoomList } from './components/RoomList';
-import { PolicyComparison } from './components/PolicyComparison';
+import { OperatorHeader } from './components/OperatorHeader';
+import { IncidentOverview } from './components/IncidentOverview';
+import { IncidentControls } from './components/IncidentControls';
+import { OperationsPlan } from './components/OperationsPlan';
+import { ImpactConsequences } from './components/ImpactConsequences';
+import { HandoverModal } from './components/HandoverModal';
+import { WhyThisScheduleModal } from './components/WhyThisScheduleModal';
 import { HowItWorksModal } from './components/HowItWorksModal';
 
 import './App.css';
 
+// Base full-capacity budget for the Hollow multi-level regional grid is 3.20 kWh.
+const BASE_BUDGET_KWH = 3.20;
+
 function getDefaultScenario(): Scenario {
-  const s = hollow();
-  s.budgetKWh = 2.28; // Default 60% shortage scenario (2.28 kWh of 3.8 kWh)
+  const s = multilevel();
+  s.budgetKWh = 1.92; // 60% of 3.20 kWh (40% geothermal shortage incident)
   return s;
 }
 
@@ -27,38 +27,20 @@ export function App() {
   const [scenario, setScenario] = useState<Scenario>(getDefaultScenario);
   const [activePolicy, setActivePolicy] = useState<PolicyMode>('fair');
   const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null);
-  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
+
+  // Modals state
+  const [isHandoverOpen, setIsHandoverOpen] = useState(false);
+  const [isWhyScheduleOpen, setIsWhyScheduleOpen] = useState(false);
+  const [isAboutScienceOpen, setIsAboutScienceOpen] = useState(false);
 
   // Live schedule solving across all three policies
-  const { results, validationErrors, preferredCov, activeResult } = useScheduler(
+  const { results, validationErrors, activeResult } = useScheduler(
     scenario,
     activePolicy,
   );
 
   const handleBudgetChange = (kwh: number) => {
     setScenario(prev => ({ ...prev, budgetKWh: Math.max(0, kwh) }));
-  };
-
-  const handlePeakChange = (w: number) => {
-    setScenario(prev => ({ ...prev, peakW: Math.max(100, w) }));
-  };
-
-  const handleScenarioSelect = (newScenario: Scenario) => {
-    setScenario(newScenario);
-    setSelectedCohortId(null);
-  };
-
-  const handleReset = () => {
-    setScenario(getDefaultScenario());
-    setSelectedCohortId(null);
-    setActivePolicy('fair');
-  };
-
-  const handleCohortRequestChange = (cohortId: string, req: number) => {
-    setScenario(prev => ({
-      ...prev,
-      cohorts: prev.cohorts.map(c => (c.id === cohortId ? { ...c, requestedSlots: req } : c)),
-    }));
   };
 
   const handleToggleRoom = (roomId: string) => {
@@ -68,23 +50,29 @@ export function App() {
     }));
   };
 
+  const handleReset = () => {
+    setScenario(getDefaultScenario());
+    setSelectedCohortId(null);
+    setActivePolicy('fair');
+  };
+
   const currentErrors = validationErrors[activePolicy] ?? [];
 
   return (
-    <div className="app-layout">
-      <Header
-        onOpenHowItWorks={() => setIsHowItWorksOpen(true)}
+    <div className="operator-app-shell">
+      {/* Global Operator Navigation & Planning Horizon Header */}
+      <OperatorHeader
+        onOpenWhyThisSchedule={() => setIsWhyScheduleOpen(true)}
+        onOpenAboutScience={() => setIsAboutScienceOpen(true)}
+        onOpenHandover={() => setIsHandoverOpen(true)}
         onReset={handleReset}
-        onExportJson={() => exportScenarioJson(scenario, results)}
-        onExportCsv={() => exportScheduleCsv(scenario, results)}
       />
 
-      <main className="main-content">
-        <CrisisBanner scenario={scenario} result={activeResult} />
-
+      <main className="operator-main-content">
+        {/* Constraint Violations Alert (if any physical bounds broken) */}
         {currentErrors.length > 0 && (
           <div className="validation-alert" role="alert">
-            <strong>Constraint Violations Detected:</strong>
+            <strong>Physical Constraint Violations Detected:</strong>
             <ul>
               {currentErrors.map((err, i) => (
                 <li key={i}>{err}</li>
@@ -93,71 +81,76 @@ export function App() {
           </div>
         )}
 
-        <KeyMetrics metrics={activeResult.metrics} scenario={scenario} />
+        {/* SCREEN 1: The Situation (The Incident Overview) */}
+        <IncidentOverview
+          scenario={scenario}
+          result={activeResult}
+          baseBudgetKWh={BASE_BUDGET_KWH}
+        />
 
-        <div className="operations-workspace">
-          {/* Left Column: Controls & Configuration */}
-          <div className="controls-column">
-            <BudgetControl
-              budgetKWh={scenario.budgetKWh}
-              peakW={scenario.peakW}
-              onBudgetChange={handleBudgetChange}
-              onPeakChange={handlePeakChange}
-            />
+        {/* SCREEN 3: Adjust the Situation (Real-Time Energy & Room Controls) */}
+        <IncidentControls
+          budgetKWh={scenario.budgetKWh}
+          baseBudgetKWh={BASE_BUDGET_KWH}
+          onBudgetChange={handleBudgetChange}
+          rooms={scenario.rooms}
+          onToggleRoom={handleToggleRoom}
+          result={activeResult}
+        />
 
-            <ScenarioPicker
-              currentScenarioId={scenario.id}
-              onSelectScenario={handleScenarioSelect}
-            />
+        {/* SCREEN 2: The Recommended Operating Plan (Core Centerpiece) */}
+        <OperationsPlan
+          scenario={scenario}
+          result={activeResult}
+          selectedCohortId={selectedCohortId}
+          onSelectCohort={setSelectedCohortId}
+          onOpenHandover={() => setIsHandoverOpen(true)}
+        />
 
-            <RoomList rooms={scenario.rooms} onToggleRoom={handleToggleRoom} />
-
-            <CohortList
-              cohorts={scenario.cohorts}
-              result={activeResult}
-              preferredCov={preferredCov[activePolicy]}
-              selectedCohortId={selectedCohortId}
-              onSelectCohort={setSelectedCohortId}
-              onRequestChange={handleCohortRequestChange}
-            />
-          </div>
-
-          {/* Right Column: Visualization & Policy Analysis */}
-          <div className="visualization-column">
-            <Timeline
-              scenario={scenario}
-              result={activeResult}
-              selectedCohortId={selectedCohortId}
-              onSelectCohort={setSelectedCohortId}
-            />
-
-            <PolicyComparison
-              scenario={scenario}
-              results={results}
-              activePolicy={activePolicy}
-              onSelectPolicy={setActivePolicy}
-            />
-          </div>
-        </div>
+        {/* SCREEN 4: Understand the Consequences (Impact & Unmet Demand Analysis) */}
+        <ImpactConsequences
+          scenario={scenario}
+          result={activeResult}
+          selectedCohortId={selectedCohortId}
+          onSelectCohort={setSelectedCohortId}
+        />
       </main>
 
-      <footer className="app-footer">
-        <div className="footer-content">
-          <p>
-            <strong>SECOND SUN</strong> — Patriot HackFest Fall 2026 Submission. Life Underground track
-            (Challenges #2: Unfair Electricity Allocations & #11: Life Without Sunlight).
-          </p>
-          <p className="footer-disclaimer">
-            Simulated scenario. Deterministic progressive-filling heuristic. No clinical outcomes,
-            circadian dose formulas, or health predictions claimed. Life-safety and exit lighting are
-            untouchable and separated.
-          </p>
+      {/* Operator Footer */}
+      <footer className="operator-footer">
+        <div className="footer-content-inner">
+          <div className="footer-left">
+            <strong>SECOND SUN</strong> — Facility Operations Planner · Life Underground Track (Patriot HackFest 2026)
+          </div>
+          <div className="footer-right">
+            Deterministic progressive-filling heuristic. Integer watt-minute accounting. Life-safety lighting strictly excluded.
+          </div>
         </div>
       </footer>
 
+      {/* SCREEN 5: Put the Plan into Action (Handover & Data Export Modal) */}
+      <HandoverModal
+        isOpen={isHandoverOpen}
+        onClose={() => setIsHandoverOpen(false)}
+        scenario={scenario}
+        results={results}
+        activePolicy={activePolicy}
+      />
+
+      {/* SUPPORTING INTELLIGENCE: Why This Schedule? Modal */}
+      <WhyThisScheduleModal
+        isOpen={isWhyScheduleOpen}
+        onClose={() => setIsWhyScheduleOpen(false)}
+        scenario={scenario}
+        results={results}
+        activePolicy={activePolicy}
+        onSelectPolicy={setActivePolicy}
+      />
+
+      {/* SCIENTIFIC TRANSPARENCY & METHODOLOGY: About & Science Modal */}
       <HowItWorksModal
-        isOpen={isHowItWorksOpen}
-        onClose={() => setIsHowItWorksOpen(false)}
+        isOpen={isAboutScienceOpen}
+        onClose={() => setIsAboutScienceOpen(false)}
       />
     </div>
   );
