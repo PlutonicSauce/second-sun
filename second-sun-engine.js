@@ -61,3 +61,4 @@ function validate(sc,res){const v=[],rm={},ch={},sw=Array(SLOTS).fill(0),cnt={};
  sc.cohorts.forEach(c=>{if((cnt[c.id]||0)>c.req)v.push('over request')});
  if(sw.some(w=>w>sc.peakW))v.push('peak cap');if(e>kwhToWm(sc.budgetKWh))v.push('energy cap');return v}
 if(typeof module!=='undefined')module.exports={SLOTS,rng,PRESETS,candidates,solve,validate,fmtT,kwhToWm};
+export {SLOTS,rng,PRESETS,candidates,solve,validate,fmtT,kwhToWm};
