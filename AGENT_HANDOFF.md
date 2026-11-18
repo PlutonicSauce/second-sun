@@ -1,113 +1,74 @@
 # SECOND SUN — Agent Handoff
 
-> Last updated: Nov 18, 2026 (Milestone 4 — Production Ready)  
+> Last updated: Nov 18, 2026 (Milestone 5 — Complete Experience Redesign)  
 > Project: SECOND SUN  
 > Event: Patriot HackFest Fall 2026, Life Underground Track  
 > Submission Deadline: Friday, November 20, 2026, 11:00 PM Eastern  
 
 ---
 
-## 1. Executive Summary
+## 1. Executive Summary: Experience Redesign
 
-The **SECOND SUN** application has been completely scaffolded, implemented, tested, and verified as a production-ready Vite + React 19 + TypeScript 5 single-page application.
+SECOND SUN has undergone a complete, fundamental user experience redesign based on the clarity of Apple, the restraint of Linear, and the storytelling of premier data visualizations.
 
-- **Reference smoke tests:** 6/6 PASS (`node engine-smoke.test.cjs`)
-- **Vitest unit & integration tests:** 42/42 PASS (`npm test`)
-- **Playwright browser verification:** 10/10 flows PASS (`npm run test:e2e` → 8 screenshots saved)
-- **TypeScript type checking:** 0 errors (`npm run typecheck`)
-- **ESLint 9 linting:** 0 errors (`npm run lint`)
-- **Production build:** SUCCESS in <700ms (`npm run build` → `dist/`)
-- **Git identity:** Verified as configured owner (`Seshank Mallireddigari <seshank0830@gmail.com>`). No AI co-author attribution.
+Rather than an analytics dashboard, the application is now structured around a single compelling interaction:
+> **Adjust available electricity, toggle between the institutional Directorate policy and SECOND SUN, and immediately see which communities gain or lose access to artificial daylight.**
 
----
-
-## 2. Verified Commands
-
-```bash
-cd "/Users/seshank/Documents/second sun"
-
-# 1. Run unit & integration tests (42 tests in engine and metrics)
-npm test
-
-# 2. Run reference prototype smoke tests (Node test runner, 6 tests)
-node engine-smoke.test.cjs
-
-# 3. Run Playwright headless browser verification & capture screenshots
-npm run test:e2e
-
-# 4. Type check the full TypeScript codebase
-npm run typecheck
-
-# 5. Lint with ESLint 9
-npm run lint
-
-# 6. Build production bundle (outputs to dist/)
-npm run build
-
-# 7. Start local development server (runs on http://localhost:5173)
-npm run dev
-```
+### Redesigned Architecture (4 Core Sections)
+1. **Section A — Minimal Introduction:**
+   - Restrained top bar with status pill (`SIMULATED DATA · THE HOLLOW 2087`), `About & Science`, and `Reset`.
+   - Powerful headline: *"Everyone needs light. Not everyone gets it."*
+   - Single contextual sentence on the 400m-deep geothermal rationing crisis.
+2. **Section B — Interactive Visualization of the Hollow (Visual Centerpiece):**
+   - Architectural vertical cross-section descending from sealed surface (0m) to Bedrock Sump (400m).
+   - Real-time proportional daylight capsules glowing warm golden amber for allocated 30-min sessions vs dark muted outlines for denied sessions (darkness).
+   - Instant visual contrast: under Directorate, light concentrates exclusively on upper administrative tiers (L2–3), leaving deep crews (L5, L7, L9) in pitch black; under SECOND SUN, light flows evenly down the entire shaft.
+   - Interactive click on any level expands shift hours, room accessibility, and solver constraint explanations.
+3. **Section C — One Primary Control:**
+   - Available Lighting Power slider with percentage readout and quick presets (`100% Normal`, `60% Geothermal Shortage` [default], `25% Critical Crisis`).
+   - Two-state segmented control: `Directorate Policy` vs `SECOND SUN`.
+4. **Section D — Clear Human-Centered Outcome:**
+   - Plain-language narrative updated live: explains upper-level capture vs equitable sharing.
+   - 4 key metrics: Worst-Served Group, Level Inequality Gap (+100% vs -17%), People Reached, and Unmet Demand.
+5. **Progressive Disclosure — System Inspector & Deep Details:**
+   - Discreet collapsible accordion at bottom housing the 48-slot room timeline, 3-way benchmark table, room online/offline toggles, scenario switcher, and JSON/CSV data export.
+   - Fixed bug where Timeline inspector hardcoded `0.20 kWh` (now dynamically calculated as `W / 2000 kWh`).
 
 ---
 
-## 3. Architecture & Implemented Scope
+## 2. Verified Test Suite & Browser Verification
 
-### `src/domain/` (Pure TypeScript Core)
-- **`types.ts`**: Strict types for `Scenario`, `Cohort`, `Room`, `Assignment`, `ScheduleResult`, `Metrics`, `PolicyMode`.
-- **`engine.ts`**: Port of reference scheduling engine with:
-  - 48 half-hour slots (`[0, 47]`), integer watt-minute accounting (`wm = watts * 30`, `kwhToWm(k)`).
-  - Safe wraparound slot range `rng(a, b)` preventing infinite loops.
-  - Three policy modes under identical constraints:
-    * `fair`: Greedy progressive-filling max-min heuristic.
-    * `first-come`: Input-order greedy allocation.
-    * `directorate`: Population-descending priority (fictional illustrative simulated policy).
-  - Independent constraint validator `validate()` checking 11 hard constraints.
-  - Explanatory binding constraint generation (`why` text).
-- **`presets.ts`**: Fresh factory functions for `hollow()`, `rationing()`, and `toy()` scenarios.
-- **`metrics.ts`**: Preferred exposure window coverage calculation, side-by-side comparison generator.
-- **`engine.test.ts` & `metrics.test.ts`**: 38 thorough Vitest tests.
-
-### `src/components/` & UI Layer
-- **`App.tsx` & `App.css`**: Restrained, high-contrast dark slate & warm amber design (Linear/Apple utility aesthetic).
-- **`CrisisBanner.tsx`**: Opening narrative explaining the Level 9 geothermal power shortage and unmet demand.
-- **`KeyMetrics.tsx`**: Real-time readout of Scheduled Sessions, Lowest Group Coverage, Daily Energy vs Cap, and Person-Slots.
-- **`BudgetControl.tsx`**: Live slider and exact input for daily discretionary kWh, peak watt cap, and quick presets (100%, 60%, 25%).
-- **`Timeline.tsx`**: 24-hour horizontal timeline with 48 half-hour slots, room rows, cohort color badges, simultaneous power load meter, and keyboard-accessible inspector.
-- **`CohortList.tsx`**: Cohort inspection cards showing shift hours, population, requested/allocated sessions, preferred-window hit rate, permitted rooms, and plain-language bottleneck explanations.
-- **`RoomList.tsx`**: Room toggling (online/offline) to simulate maintenance or outages.
-- **`PolicyComparison.tsx`**: Side-by-side table comparing SECOND SUN vs First-Come vs Directorate under identical constraints.
-- **`HowItWorksModal.tsx`**: Complete architectural and scientific transparency modal with peer-reviewed citations.
-- **`utils/export.ts`**: Export full schedule and scenario as formatted JSON or tidy CSV.
+- **Vitest Unit & Integration Tests:** 42/42 PASS (`npm test`)
+- **Reference Prototype Smoke Tests:** 6/6 PASS (`node engine-smoke.test.cjs`)
+- **TypeScript Strict Check:** 0 errors (`npm run typecheck`)
+- **ESLint 9 Linting:** 0 errors (`npm run lint`)
+- **Production Build:** SUCCESS in <670ms (`npm run build` → `dist/`)
+- **Playwright E2E Browser Suite:** 9/9 PASS (`node scripts/verify-browser.mjs`)
+- **Captured Visual Evidence:** 12 screenshots saved in `screenshots/`:
+  - `01-redesign-desktop-fair-60.png` & `01-redesign-desktop-fair-60-full.png` (Desktop SECOND SUN at 60%)
+  - `02-redesign-desktop-directorate-60.png` & `02-redesign-desktop-directorate-60-full.png` (Desktop Directorate comparison showing deep levels in dark)
+  - `03-redesign-desktop-crisis-25.png` (25% critical power crisis)
+  - `04-redesign-desktop-normal-100.png` (100% normal power grid)
+  - `05-redesign-level-drawer-expanded.png` (Level 9 interactive detail drawer)
+  - `06-redesign-system-inspector-timeline.png` (System Inspector 48-slot timeline with dynamic wattage)
+  - `07-redesign-system-inspector-benchmark.png` (3-way benchmark matrix)
+  - `08-redesign-about-modal.png` (Scientific transparency modal)
+  - `09-redesign-mobile-390px.png` & `09-redesign-mobile-390px-full.png` (Responsive mobile experience)
 
 ---
 
-## 4. Git & Repository Status
+## 3. Git Status
 
 - **Working Directory:** `/Users/seshank/Documents/second sun/`
-- **Branch:** `main`
-- **Remote:** `https://github.com/PlutonicSauce/second-sun.git` (tracked as `origin/main`)
-- **Push Status:** Verified pushed to remote `main`.
-- **Commits:**
-  1. `9914513`: feat: scaffold and TypeScript domain engine with full test suite
-  2. `6abd08a`: chore: untrack node_modules, update build config, and add submission docs
-  3. `9bd737d`: feat: complete interactive operations UI, timeline visualization, and policy comparison
-  4. `7fa054a`: docs: update repository URL and submission metadata
-  5. `0a2150f`: feat: level-based Directorate policy, multi-level grid scenario, and browser E2E suite
+- **Active Branch:** `redesign/experience` (dedicated review branch; `main` left untouched)
+- **Git Identity:** `Seshank Mallireddigari <seshank0830@gmail.com>` (zero AI co-author trailers)
+- **Remote:** `https://github.com/PlutonicSauce/second-sun.git`
 
 ---
 
-## 5. Live Production Deployment
+## 4. Next Steps for Review & Submission
 
-- **Hosting Platform:** Vercel (Production Deployment)
-- **Live URL:** [https://second-sun-rho.vercel.app](https://second-sun-rho.vercel.app)
-- **Deployment Status:** `Ready` (Verified on Vercel Dashboard)
-- **Production Build:** `npm run build` generates `dist/` in ~650ms.
-
----
-
-## 6. Next Steps for Submission
-
-1. **Record 60–90s Demo Video:**
-   Follow `DEMO_SCRIPT.md` walkthrough on [https://second-sun-rho.vercel.app](https://second-sun-rho.vercel.app).
-2. **Submit:**
-   Submit via the Patriot HackFest portal using metadata in `SUBMISSION.md` before the deadline on **Friday, November 20, 2026 at 11:00 PM Eastern**.
+1. **Review Redesign Branch:** Inspect the redesign on branch `redesign/experience`.
+2. **Merge & Deploy:** When approved, merge `redesign/experience` into `main` and push to trigger automated Vercel production deployment.
+3. **Record Demo Video:** Follow the streamlined flow in `DEMO_SCRIPT.md` using the new visual centerpiece.
+4. **Submit:** Submit via Patriot HackFest portal before **Friday, November 20, 2026, at 11:00 PM Eastern**.

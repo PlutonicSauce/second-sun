@@ -1,25 +1,24 @@
 import { useState } from 'react';
 import type { Scenario, PolicyMode } from './domain/types';
-import { hollow } from './domain/presets';
+import { multilevel } from './domain/presets';
 import { useScheduler } from './hooks/useScheduler';
-import { exportScenarioJson, exportScheduleCsv } from './utils/export';
 
 import { Header } from './components/Header';
-import { CrisisBanner } from './components/CrisisBanner';
-import { KeyMetrics } from './components/KeyMetrics';
-import { BudgetControl } from './components/BudgetControl';
-import { ScenarioPicker } from './components/ScenarioPicker';
-import { Timeline } from './components/Timeline';
-import { CohortList } from './components/CohortList';
-import { RoomList } from './components/RoomList';
-import { PolicyComparison } from './components/PolicyComparison';
+import { PrimaryControls } from './components/PrimaryControls';
+import { HollowLevelsView } from './components/HollowLevelsView';
+import { OutcomeSummary } from './components/OutcomeSummary';
+import { SystemInspector } from './components/SystemInspector';
 import { HowItWorksModal } from './components/HowItWorksModal';
 
 import './App.css';
 
+// Base budget for the multi-level scenario is 3.2 kWh.
+// Default launch simulates a 60% geothermal power shortage (1.92 kWh).
+const BASE_BUDGET_KWH = 3.2;
+
 function getDefaultScenario(): Scenario {
-  const s = hollow();
-  s.budgetKWh = 2.28; // Default 60% shortage scenario (2.28 kWh of 3.8 kWh)
+  const s = multilevel();
+  s.budgetKWh = 1.92; // 60% of 3.2 kWh
   return s;
 }
 
@@ -68,93 +67,72 @@ export function App() {
     }));
   };
 
-  const currentErrors = validationErrors[activePolicy] ?? [];
-
   return (
-    <div className="app-layout">
+    <div className="app-shell">
+      {/* SECTION A: Minimal Introduction */}
       <Header
         onOpenHowItWorks={() => setIsHowItWorksOpen(true)}
         onReset={handleReset}
-        onExportJson={() => exportScenarioJson(scenario, results)}
-        onExportCsv={() => exportScheduleCsv(scenario, results)}
       />
 
-      <main className="main-content">
-        <CrisisBanner scenario={scenario} result={activeResult} />
+      <main className="main-container">
+        {/* SECTION C: One Primary Control (Policy Toggle & Power Slider) */}
+        <PrimaryControls
+          budgetKWh={scenario.budgetKWh}
+          baseBudgetKWh={BASE_BUDGET_KWH}
+          onBudgetChange={handleBudgetChange}
+          activePolicy={activePolicy}
+          onSelectPolicy={setActivePolicy}
+        />
 
-        {currentErrors.length > 0 && (
-          <div className="validation-alert" role="alert">
-            <strong>Constraint Violations Detected:</strong>
-            <ul>
-              {currentErrors.map((err, i) => (
-                <li key={i}>{err}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* SECTION B: Interactive Visualization of the Hollow (Visual Centerpiece) */}
+        <HollowLevelsView
+          scenario={scenario}
+          result={activeResult}
+          activePolicy={activePolicy}
+          preferredCov={preferredCov[activePolicy]}
+          selectedCohortId={selectedCohortId}
+          onSelectCohort={setSelectedCohortId}
+        />
 
-        <KeyMetrics metrics={activeResult.metrics} scenario={scenario} />
+        {/* SECTION D: Clear Human-Centered Outcome */}
+        <OutcomeSummary
+          scenario={scenario}
+          result={activeResult}
+          activePolicy={activePolicy}
+        />
 
-        <div className="operations-workspace">
-          {/* Left Column: Controls & Configuration */}
-          <div className="controls-column">
-            <BudgetControl
-              budgetKWh={scenario.budgetKWh}
-              peakW={scenario.peakW}
-              onBudgetChange={handleBudgetChange}
-              onPeakChange={handlePeakChange}
-            />
-
-            <ScenarioPicker
-              currentScenarioId={scenario.id}
-              onSelectScenario={handleScenarioSelect}
-            />
-
-            <RoomList rooms={scenario.rooms} onToggleRoom={handleToggleRoom} />
-
-            <CohortList
-              cohorts={scenario.cohorts}
-              result={activeResult}
-              preferredCov={preferredCov[activePolicy]}
-              selectedCohortId={selectedCohortId}
-              onSelectCohort={setSelectedCohortId}
-              onRequestChange={handleCohortRequestChange}
-            />
-          </div>
-
-          {/* Right Column: Visualization & Policy Analysis */}
-          <div className="visualization-column">
-            <Timeline
-              scenario={scenario}
-              result={activeResult}
-              selectedCohortId={selectedCohortId}
-              onSelectCohort={setSelectedCohortId}
-            />
-
-            <PolicyComparison
-              scenario={scenario}
-              results={results}
-              activePolicy={activePolicy}
-              onSelectPolicy={setActivePolicy}
-            />
-          </div>
-        </div>
+        {/* STEP 3: Progressive Disclosure — System Inspector & Deep Details */}
+        <SystemInspector
+          scenario={scenario}
+          results={results}
+          activePolicy={activePolicy}
+          onSelectPolicy={setActivePolicy}
+          preferredCov={preferredCov}
+          selectedCohortId={selectedCohortId}
+          onSelectCohort={setSelectedCohortId}
+          onBudgetChange={handleBudgetChange}
+          onPeakChange={handlePeakChange}
+          onSelectScenario={handleScenarioSelect}
+          onToggleRoom={handleToggleRoom}
+          onCohortRequestChange={handleCohortRequestChange}
+          validationErrors={validationErrors}
+        />
       </main>
 
-      <footer className="app-footer">
-        <div className="footer-content">
-          <p>
-            <strong>SECOND SUN</strong> — Patriot HackFest Fall 2026 Submission. Life Underground track
-            (Challenges #2: Unfair Electricity Allocations & #11: Life Without Sunlight).
-          </p>
-          <p className="footer-disclaimer">
-            Simulated scenario. Deterministic progressive-filling heuristic. No clinical outcomes,
-            circadian dose formulas, or health predictions claimed. Life-safety and exit lighting are
-            untouchable and separated.
-          </p>
+      {/* Restrained, Minimal Footer */}
+      <footer className="app-footer-minimal">
+        <div className="footer-inner">
+          <span>
+            SECOND SUN · Patriot HackFest Fall 2026 · Life Underground Track
+          </span>
+          <span className="footer-disclaimer-short">
+            Deterministic progressive-filling heuristic under strict integer power constraints. Life-safety lighting excluded.
+          </span>
         </div>
       </footer>
 
+      {/* Science & Methodology Modal */}
       <HowItWorksModal
         isOpen={isHowItWorksOpen}
         onClose={() => setIsHowItWorksOpen(false)}

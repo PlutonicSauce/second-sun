@@ -220,7 +220,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   👤 <strong>{activeSlotInfo.cohortName}</strong>
                 </span>
                 <span className="inspector-power">
-                  ⚡ {activeSlotInfo.assignment.actualPowerWatts}W (0.20 kWh)
+                  ⚡ {activeSlotInfo.assignment.actualPowerWatts}W ({(activeSlotInfo.assignment.actualPowerWatts / 2000).toFixed(2)} kWh)
                 </span>
                 {activeSlotInfo.isPreferred ? (
                   <span className="badge badge-success">★ In Preferred Planning Window</span>

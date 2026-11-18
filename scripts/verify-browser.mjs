@@ -1,4 +1,4 @@
-// Comprehensive Playwright browser verification script for SECOND SUN
+// Comprehensive Playwright browser verification script for SECOND SUN Redesign
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -14,7 +14,7 @@ async function wait(ms) {
 }
 
 async function run() {
-  console.log('🚀 Starting Vite preview server...');
+  console.log('🚀 Starting Vite preview server on port 4173...');
   const previewProcess = spawn('npx', ['vite', 'preview', '--port', '4173'], {
     cwd: rootDir,
     stdio: 'pipe',
@@ -44,219 +44,167 @@ async function run() {
     console.log('🌐 Navigating to http://localhost:4173...');
     await page.goto('http://localhost:4173', { waitUntil: 'networkidle' });
 
-    // 1. Initial Page Load
+    // 1. Initial Page Load & Headline
     const title = await page.title();
     check('Page title correct', title.includes('SECOND SUN'), title);
 
-    const brandHeader = await page.textContent('.brand-title');
-    check('Header brand title rendered', brandHeader.includes('SECOND SUN'), brandHeader);
+    const brandName = await page.textContent('.brand-name');
+    check('Brand lockup rendered', brandName.includes('SECOND SUN'), brandName);
 
-    // Check crisis banner
-    const crisisText = await page.textContent('.crisis-banner');
-    check('Crisis banner mentions power crisis', crisisText.includes('Power') || crisisText.includes('Deficit'), crisisText.slice(0, 80));
-    check('Mentions zero natural sunlight', crisisText.includes('zero natural sunlight'));
+    const headline = await page.textContent('.hero-headline');
+    check('Headline rendered clearly', headline.includes('Everyone needs light'), headline);
 
-    // Check default 60% shortage metrics (fair heuristic gives 9 / 15 sessions, 50% minCov)
-    const metricsCards = await page.$$('.metric-card');
-    check('Four metric cards rendered', metricsCards.length >= 3, `Found ${metricsCards.length}`);
+    const powerReadout = await page.textContent('.power-readout');
+    check('Default power is 60% (1.92 kWh)', powerReadout.includes('60%') && powerReadout.includes('1.92'), powerReadout);
 
-    const sessionsText = await metricsCards[0].textContent();
-    check('Default sessions is 9 / 15', sessionsText.includes('9') && sessionsText.includes('15'), sessionsText.replace(/\s+/g, ' '));
+    // 2. Visual Centerpiece: Subterranean Levels
+    const levelRows = await page.$$('.level-row');
+    check('Five subterranean habitat levels rendered', levelRows.length === 5, `Found ${levelRows.length} levels`);
 
-    const minCovText = await metricsCards[1].textContent();
-    check('Default minCov is 50%', minCovText.includes('50%'), minCovText.replace(/\s+/g, ' '));
+    // Under SECOND SUN at 60%, check Level 9 coverage
+    const level9Row = levelRows[4];
+    const level9Text = await level9Row.textContent();
+    check('Level 9 Deep Ventilation rendered', level9Text.includes('Deep Ventilation') || level9Text.includes('L9'), level9Text.slice(0, 60));
+    check('Level 9 receives light under SECOND SUN (50%)', level9Text.includes('50%') || level9Text.includes('2/4'), level9Text);
 
-    const energyText = await metricsCards[2].textContent();
-    check('Default energy shows 2.25 / 2.28 kWh', energyText.includes('2.25') && energyText.includes('2.28'), energyText.replace(/\s+/g, ' '));
+    // Capture initial screenshot (SECOND SUN at 60%)
+    await page.screenshot({ path: path.join(screenshotsDir, '01-redesign-desktop-fair-60.png') });
+    await page.screenshot({ path: path.join(screenshotsDir, '01-redesign-desktop-fair-60-full.png'), fullPage: true });
+    results.screenshots.push('01-redesign-desktop-fair-60.png', '01-redesign-desktop-fair-60-full.png');
 
-    // Capture initial screenshot
-    await page.screenshot({ path: path.join(screenshotsDir, '01-desktop-initial-shortage.png') });
-    results.screenshots.push('01-desktop-initial-shortage.png');
-
-    // 2. Timeline Inspection
-    const roomRows = await page.$$('.timeline-row:not(.timeline-time-header):not(.timeline-power-row)');
-    check('Timeline renders 3 room rows', roomRows.length === 3, `Found ${roomRows.length}`);
-
-    // Hover a slot cell to verify inspector bar updates
-    const firstAssignedSlot = await page.$('.slot-assigned');
-    check('Assigned slot found on timeline', !!firstAssignedSlot);
-    await firstAssignedSlot.hover();
-    await wait(200);
-
-    const inspectorText = await page.textContent('.timeline-inspector-bar');
-    check('Inspector bar displays slot details on hover', inspectorText.includes('Slot #') && inspectorText.includes('W'), inspectorText);
-
-    // 3. Power Budget Control Changes
-    console.log('⚡ Testing budget changes...');
-    // Click "Full Grid (100%)"
-    const fullGridBtn = await page.getByRole('button', { name: 'Full Grid (100%)' });
-    await fullGridBtn.click();
-    await wait(300);
-
-    const fullSessionsText = await metricsCards[0].textContent();
-    check('At 100% budget, sessions increases to 15 / 15', fullSessionsText.includes('15') && fullSessionsText.includes('15 req'), fullSessionsText.replace(/\s+/g, ' '));
-
-    const fullMinCovText = await metricsCards[1].textContent();
-    check('At 100% budget, minCov is 100%', fullMinCovText.includes('100%'), fullMinCovText.replace(/\s+/g, ' '));
-
-    await page.screenshot({ path: path.join(screenshotsDir, '02-desktop-full-budget-100.png') });
-    results.screenshots.push('02-desktop-full-budget-100.png');
-
-    // Click "Severe Rationing (25%)"
-    const severeBtn = await page.getByRole('button', { name: 'Severe Rationing (25%)' });
-    await severeBtn.click();
-    await wait(300);
-
-    const severeSessions = await metricsCards[0].textContent();
-    check('At 25% budget, severe shortage occurs', severeSessions.includes('unmet'), severeSessions.replace(/\s+/g, ' '));
-
-    await page.screenshot({ path: path.join(screenshotsDir, '03-desktop-severe-rationing-25.png') });
-    results.screenshots.push('03-desktop-severe-rationing-25.png');
-
-    // Reset back to default
-    const resetBtn = await page.getByRole('button', { name: '↺ Reset' });
-    await resetBtn.click();
-    await wait(300);
-
-    // 4. Policy Comparison Verification
-    console.log('⚖ Testing Policy Comparison...');
-    // Check comparison table has columns
-    const comparisonHeaders = await page.$$('.col-policy');
-    check('Comparison table has 3 policy columns', comparisonHeaders.length === 3);
-
-    // Check Worst-Served Group and Level Inequality Gap rows exist
-    const tableText = await page.textContent('.comparison-table');
-    check('Table includes Worst-Served Group metric', tableText.includes('Worst-Served Group'));
-    check('Table includes Level Inequality Gap metric', tableText.includes('Level Inequality Gap'));
-
-    // Switch to First-Come tab
-    const firstComeTab = await page.getByRole('tab', { name: /First-Come/i });
-    await firstComeTab.click();
-    await wait(300);
-
-    const fcSessionsText = await metricsCards[0].textContent();
-    check('First-Come mode allocates 7 sessions at 60%', fcSessionsText.includes('7') && fcSessionsText.includes('15 req'), fcSessionsText.replace(/\s+/g, ' '));
-
-    // Switch to Directorate tab
-    const dirTab = await page.getByRole('tab', { name: /Directorate/i });
-    await dirTab.click();
-    await wait(300);
-
-    const dirText = await dirTab.textContent();
-    check('Directorate tab indicates simulated policy', dirText.includes('Directorate'));
-
-    await page.screenshot({ path: path.join(screenshotsDir, '04-desktop-policy-comparison.png') });
-    results.screenshots.push('04-desktop-policy-comparison.png');
-
-    // Switch back to fair
-    const fairTab = await page.getByRole('tab', { name: /SECOND SUN/i });
-    await fairTab.click();
-    await wait(200);
-
-    // 5. Cohort Inspection and Editing
-    console.log('👥 Testing Cohort inspection and request adjustments...');
-    const cohortCards = await page.$$('.cohort-card');
-    check('Four cohort cards rendered', cohortCards.length === 4, `Found ${cohortCards.length}`);
-
-    // Check level badges on cohorts
-    const levelBadges = await page.$$('.cohort-name-title-row .badge');
-    check('Cohort level badges rendered (L3, L5, L7, L9)', levelBadges.length >= 4);
-
-    // Click + on first cohort requested slots
-    const plusBtn = await page.$('.btn-counter:has-text("+")');
-    await plusBtn.click();
-    await wait(300);
-
-    const updatedSessions = await metricsCards[0].textContent();
-    check('Requested slots incremented (total requested increases to 16)', updatedSessions.includes('16 req'), updatedSessions.replace(/\s+/g, ' '));
-
-    // Click - to restore
-    const minusBtn = await page.$('.btn-counter:has-text("−")');
-    await minusBtn.click();
-    await wait(300);
-
-    // 6. Room Availability Toggle
-    console.log('🏛 Testing Room offline toggle...');
-    const toggleBtn = await page.$('.btn-toggle-on');
-    check('Online room toggle button found', !!toggleBtn);
-    await toggleBtn.click();
-    await wait(300);
-
-    const offlineBadge = await page.$('.room-offline-badge');
-    check('Room toggled offline and OFFLINE badge displayed', !!offlineBadge);
-
-    await page.screenshot({ path: path.join(screenshotsDir, '05-room-offline-state.png') });
-    results.screenshots.push('05-room-offline-state.png');
-
-    // Restore room online
-    const offlineToggleBtn = await page.$('.btn-toggle-off');
-    await offlineToggleBtn.click();
-    await wait(300);
-
-    // 7. Scenario Switching: Multilevel Scenario
-    console.log('🏢 Testing Multi-Level Grid Scenario...');
-    const multilevelBtn = await page.getByRole('radio', { name: /Hollow Multi-Sector Grid/i });
-    await multilevelBtn.click();
+    // 3. Switch to Directorate Policy
+    console.log('🏛 Testing Directorate Policy switch...');
+    const dirBtn = await page.locator('.policy-toggle-btn', { hasText: 'Directorate Policy' });
+    await dirBtn.click();
     await wait(400);
 
-    const mlCohorts = await page.$$('.cohort-card');
-    check('Multilevel scenario loads 5 cohorts (L2–L9)', mlCohorts.length === 5, `Found ${mlCohorts.length}`);
+    const dirOutcome = await page.textContent('.outcome-narrative');
+    check('Outcome narrative updates for Directorate', dirOutcome.includes('Directorate policy'), dirOutcome.slice(0, 80));
 
-    await page.screenshot({ path: path.join(screenshotsDir, '06-multilevel-scenario.png') });
-    results.screenshots.push('06-multilevel-scenario.png');
+    // Under Directorate, Level 9 should be 0% in darkness
+    const level9DirText = await levelRows[4].textContent();
+    check('Level 9 gets 0% under Directorate', level9DirText.includes('0%') || level9DirText.includes('0/4'), level9DirText);
 
-    // Reset back to Hollow default
-    await resetBtn.click();
+    // Capture Directorate screenshot
+    await page.screenshot({ path: path.join(screenshotsDir, '02-redesign-desktop-directorate-60.png') });
+    await page.screenshot({ path: path.join(screenshotsDir, '02-redesign-desktop-directorate-60-full.png'), fullPage: true });
+    results.screenshots.push('02-redesign-desktop-directorate-60.png', '02-redesign-desktop-directorate-60-full.png');
+
+    // Switch back to SECOND SUN
+    const fairBtn = await page.locator('.policy-toggle-btn', { hasText: 'SECOND SUN' });
+    await fairBtn.click();
     await wait(300);
 
-    // 8. "How It Works" Modal
-    console.log('📖 Testing How It Works modal...');
-    const howItWorksBtn = await page.getByRole('button', { name: /How It Works/i });
-    await howItWorksBtn.click();
+    // 4. Test Power Presets
+    console.log('⚡ Testing Power Preset: 25% Critical Shortage...');
+    const p25Btn = await page.locator('.preset-pill', { hasText: '25%' });
+    await p25Btn.click();
     await wait(300);
 
-    const modalTitle = await page.textContent('#modal-title');
-    check('How It Works modal opens', modalTitle.includes('How SECOND SUN Works'), modalTitle);
+    const p25Readout = await page.textContent('.power-readout');
+    check('Power updates to 25%', p25Readout.includes('25%'), p25Readout);
 
-    const modalBodyText = await page.textContent('.modal-body');
-    check('Modal contains scientific references', modalBodyText.includes('CIE Position Statement') && modalBodyText.includes('PLOS Biology'));
-    check('Modal emphasizes safety lighting is untouchable', modalBodyText.includes('Untouchable Safety Lighting'));
+    await page.screenshot({ path: path.join(screenshotsDir, '03-redesign-desktop-crisis-25.png') });
+    results.screenshots.push('03-redesign-desktop-crisis-25.png');
 
-    await page.screenshot({ path: path.join(screenshotsDir, '07-how-it-works-modal.png') });
-    results.screenshots.push('07-how-it-works-modal.png');
+    console.log('⚡ Testing Power Preset: 100% Normal Grid...');
+    const p100Btn = await page.locator('.preset-pill', { hasText: '100%' });
+    await p100Btn.click();
+    await wait(300);
 
-    // Close modal
-    const closeBtn = await page.$('.btn-modal-close');
+    const p100Readout = await page.textContent('.power-readout');
+    check('Power updates to 100%', p100Readout.includes('100%'), p100Readout);
+
+    await page.screenshot({ path: path.join(screenshotsDir, '04-redesign-desktop-normal-100.png') });
+    results.screenshots.push('04-redesign-desktop-normal-100.png');
+
+    // Return to 60% default
+    const p60Btn = await page.locator('.preset-pill', { hasText: '60%' });
+    await p60Btn.click();
+    await wait(300);
+
+    // 5. Test Interactive Level Inspection Drawer
+    console.log('🔍 Testing interactive level drawer on Level 9...');
+    await levelRows[4].click();
+    await wait(300);
+
+    const drawerStat = await page.$('.level-expanded-drawer');
+    check('Level expanded drawer opens on click', !!drawerStat);
+    const drawerText = await drawerStat.textContent();
+    check('Drawer shows shift window & accessible facilities', drawerText.includes('window') || drawerText.includes('Facilities'), drawerText.slice(0, 80));
+
+    await page.screenshot({ path: path.join(screenshotsDir, '05-redesign-level-drawer-expanded.png') });
+    results.screenshots.push('05-redesign-level-drawer-expanded.png');
+
+    // 6. Test Progressive Disclosure: System Inspector
+    console.log('🔬 Testing System Inspector drawer...');
+    const inspectorToggle = await page.$('.inspector-toggle-bar');
+    check('System Inspector toggle bar present', !!inspectorToggle);
+    await inspectorToggle.click();
+    await wait(400);
+
+    const timelineContainer = await page.$('.timeline-container');
+    check('24-Hour Timeline rendered inside System Inspector', !!timelineContainer);
+
+    // Verify hover on timeline slot and the dynamic kWh calculation
+    const assignedSlot = await page.$('.slot-assigned');
+    check('Assigned slot found on timeline', !!assignedSlot);
+    await assignedSlot.hover();
+    await wait(200);
+
+    const inspectorBarText = await page.textContent('.timeline-inspector-bar');
+    check('Timeline inspector dynamically displays power and kWh', inspectorBarText.includes('kWh') && inspectorBarText.includes('W'), inspectorBarText);
+
+    await page.screenshot({ path: path.join(screenshotsDir, '06-redesign-system-inspector-timeline.png') });
+    results.screenshots.push('06-redesign-system-inspector-timeline.png');
+
+    // Switch to Policy Comparison Benchmark Tab
+    const benchmarkTabBtn = await page.locator('.inspector-tab-btn', { hasText: '3-Way Policy Benchmark' });
+    await benchmarkTabBtn.click();
+    await wait(300);
+
+    const compTable = await page.$('.comparison-table');
+    check('3-way policy comparison table rendered in inspector', !!compTable);
+
+    await page.screenshot({ path: path.join(screenshotsDir, '07-redesign-system-inspector-benchmark.png') });
+    results.screenshots.push('07-redesign-system-inspector-benchmark.png');
+
+    // 7. Test About & Science Modal
+    console.log('📖 Testing About & Science Modal...');
+    const aboutBtn = await page.locator('.nav-btn-secondary', { hasText: 'About & Science' });
+    await aboutBtn.click();
+    await wait(300);
+
+    const modalTitle = await page.textContent('.modal-title');
+    check('About modal opened with peer-reviewed citations', modalTitle.includes('How SECOND SUN Works'), modalTitle);
+
+    await page.screenshot({ path: path.join(screenshotsDir, '08-redesign-about-modal.png') });
+    results.screenshots.push('08-redesign-about-modal.png');
+
+    const closeBtn = await page.$('.btn-modal-close') || await page.locator('button', { hasText: 'Close' });
     await closeBtn.click();
     await wait(200);
 
-    // 9. Mobile Viewport Layout Verification
-    console.log('📱 Testing Mobile layout (375x812)...');
-    await page.setViewportSize({ width: 375, height: 812 });
+    // 8. Test Mobile Responsiveness (390px)
+    console.log('📱 Testing Mobile Responsiveness (390px viewport)...');
+    await page.setViewportSize({ width: 390, height: 844 });
     await wait(400);
 
-    // Verify operations workspace stacks to single column on mobile
-    const isMobileStacked = await page.evaluate(() => {
-      const el = document.querySelector('.operations-workspace');
-      if (!el) return false;
-      const style = window.getComputedStyle(el);
-      return style.gridTemplateColumns.split(' ').length === 1;
+    const mobileHeadline = await page.textContent('.hero-headline');
+    check('Mobile headline renders nicely', mobileHeadline.includes('Everyone needs light'));
+
+    await page.screenshot({
+      path: path.join(screenshotsDir, '09-redesign-mobile-390px.png'),
+      fullPage: false,
     });
-    check('Mobile layout stacks workspace to single column', isMobileStacked);
+    await page.screenshot({
+      path: path.join(screenshotsDir, '09-redesign-mobile-390px-full.png'),
+      fullPage: true,
+    });
+    results.screenshots.push('09-redesign-mobile-390px.png', '09-redesign-mobile-390px-full.png');
 
-    await page.screenshot({ path: path.join(screenshotsDir, '08-mobile-responsive-layout.png'), fullPage: true });
-    results.screenshots.push('08-mobile-responsive-layout.png');
-
-    // 10. Keyboard Accessibility
-    console.log('⌨ Testing keyboard accessibility navigation...');
-    await page.setViewportSize({ width: 1440, height: 960 });
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    const focusedTag = await page.evaluate(() => document.activeElement?.tagName);
-    check('Keyboard Tab focuses interactive elements', focusedTag === 'BUTTON' || focusedTag === 'A' || focusedTag === 'INPUT', focusedTag);
-
-    console.log('✨ All browser tests PASSED successfully!');
-    console.log(`📸 Screenshots saved to: ${screenshotsDir}`);
+    console.log('\n🎉 ALL E2E BROWSER CHECKS PASSED SUCCESSFULLY!');
+    console.log(`📸 Saved ${results.screenshots.length} screenshots to ${screenshotsDir}`);
   } finally {
     await browser.close();
     previewProcess.kill();
@@ -264,6 +212,6 @@ async function run() {
 }
 
 run().catch(err => {
-  console.error('Fatal error during browser verification:', err);
+  console.error('❌ Verification failed:', err);
   process.exit(1);
 });
