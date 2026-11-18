@@ -11,8 +11,8 @@
 | **Project name** | SECOND SUN |
 | **Tech stack** | Vite 6, React 19, TypeScript 5, Vitest 2 |
 | **Backend** | None (pure client-side computation) |
-| **Source URL** | _(placeholder — add GitHub repo URL before submission)_ |
-| **Team** | _(placeholder — replace with actual team member names and roles before submission)_ |
+| **Source URL** | https://github.com/PlutonicSauce/second-sun |
+| **Team** | Seshank Mallireddigari |
 
 ---
 
@@ -33,8 +33,8 @@ SECOND SUN is a fairness-aware scheduling tool that distributes limited access t
 
 ## Submission Checklist
 
-- [ ] Replace team member placeholder with actual names
-- [ ] Add GitHub repository URL
+- [x] Replace team member placeholder with actual names
+- [x] Add GitHub repository URL
 - [ ] Confirm submission platform URL and form requirements
 - [ ] Verify `npm run build` produces a clean production bundle
 - [ ] Deploy to Vercel or Netlify for a public demo URL (see AGENT_HANDOFF.md)

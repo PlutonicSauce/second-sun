@@ -80,25 +80,21 @@ npm run dev
 ## 4. Git & Repository Status
 
 - **Working Directory:** `/Users/seshank/Documents/second sun/`
-- **Branch:** `master`
-- **Remote:** No remote configured yet (local Git commits only).
+- **Branch:** `main`
+- **Remote:** `https://github.com/PlutonicSauce/second-sun.git` (tracked as `origin/main`)
+- **Push Status:** Verified pushed to remote `main`.
 - **Commits:**
   1. `9914513`: Initial scaffold and domain engine
   2. `6abd08a`: Untrack node_modules, update build config, add docs
-  3. *(Next: commit React UI components and verified build)*
+  3. `9bd737d`: feat: complete interactive operations UI, timeline visualization, and policy comparison
 
 ---
 
 ## 5. Next Steps for Submission
 
-1. **GitHub Remote (User action):**
-   ```bash
-   git remote add origin https://github.com/<username>/second-sun.git
-   git push -u origin master
-   ```
-2. **One-Click Deployment:**
-   Deploy `dist/` or connect the GitHub repository to Vercel/Netlify/Cloudflare Pages.
-3. **Record 60–90s Demo Video:**
+1. **One-Click Deployment:**
+   Connect `https://github.com/PlutonicSauce/second-sun` to Vercel or Netlify (build command: `npm run build`, output dir: `dist`).
+2. **Record 60–90s Demo Video:**
    Follow `DEMO_SCRIPT.md` walkthrough.
-4. **Submit:**
+3. **Submit:**
    Use metadata in `SUBMISSION.md` before the deadline on **Friday, November 20, 2026 at 11:00 PM Eastern**.
