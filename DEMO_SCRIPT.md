@@ -44,9 +44,9 @@
 
 ### (50 – 70 s) — Comparing Policies
 
-> *"Now compare the three policies side by side, same energy, same rooms, same constraints. SECOND SUN — the fair heuristic — achieves higher minimum coverage than first-come. The Directorate policy, an illustrative fictional rule, favours larger cohorts. Same kilowatt-hours, different fairness outcomes. The difference is the algorithm, not the physics."*
+> *"Now compare the three policies side by side: same energy, same rooms, same physical constraints. SECOND SUN — the progressive fair heuristic — achieves 50% minimum coverage, ensuring every shift gets light. First-come lets early requesters grab power. The Directorate policy, an illustrative simulated rule, favors upper administrative levels first (Level 3 Medical gets 100%), leaving Deep Level 9 vent crews with zero light. Same kilowatt-hours, different fairness outcomes. The difference is the algorithm, not the physics."*
 
-**Action:** Switch to the **Policy Comparison** view. Set budget back to 60%. Point to the three columns: minCov, avgCov, sessions. Highlight that Fair has the highest minCov row.
+**Action:** Switch to the **Policy Comparison** view. Point to the three columns: Minimum Group Coverage, Worst-Served Group, and Level Inequality Gap. Highlight that SECOND SUN guarantees 50% minimum coverage, while Directorate has a +100% inequality gap favoring upper tiers.
 
 > *(Briefly gesture at the Directorate label)* *"The Directorate column is clearly labelled — it's a simulated, illustrative policy for comparison. Not a recommendation."*
 

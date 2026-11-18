@@ -159,9 +159,10 @@ export function solve(scenario: Scenario, mode: PolicyMode): ScheduleResult {
     const orderedCohorts = [...scenario.cohorts];
     if (mode === 'directorate') {
       // Illustrative Directorate Policy (Simulated) — fictional, NOT actual government behavior.
-      // Priority: largest population first; ties broken by cohort id ascending.
+      // Priority: upper subterranean levels first (level ascending: Level 2 before Level 5 before Level 9).
+      // Deep lower-level cohorts are placed at the back of the queue. Ties broken by cohort id ascending.
       orderedCohorts.sort((a, b) =>
-        b.populationPeople - a.populationPeople || a.id.localeCompare(b.id)
+        (a.level ?? 99) - (b.level ?? 99) || a.id.localeCompare(b.id)
       );
     }
     for (const c of orderedCohorts) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { hollow, rationing, toy } from '../domain/presets';
+import { hollow, rationing, toy, multilevel } from '../domain/presets';
 import type { Scenario } from '../domain/types';
 
 interface ScenarioPickerProps {
@@ -15,10 +15,20 @@ export const ScenarioPicker: React.FC<ScenarioPickerProps> = ({
     {
       id: 'hollow',
       name: 'Hollow Level 9 (Rotating Shifts)',
-      desc: '4 cohorts, 3 rooms, 140 residents. Default 2.28 kWh shortage.',
+      desc: '4 cohorts across levels 3, 5, 7, 9. Default 2.28 kWh (60%) geothermal shortage.',
       factory: () => {
         const s = hollow();
         s.budgetKWh = 2.28; // default to 60% shortage
+        return s;
+      },
+    },
+    {
+      id: 'multilevel',
+      name: 'Hollow Multi-Sector Grid (Levels 2–9)',
+      desc: '5 cohorts from Level 2 Executive to Level 9 Deep Sump. Shows Directorate upper-level favoritism.',
+      factory: () => {
+        const s = multilevel();
+        s.budgetKWh = 1.92; // 60% of 3.2 kWh
         return s;
       },
     },

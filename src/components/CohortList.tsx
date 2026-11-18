@@ -23,7 +23,7 @@ export const CohortList: React.FC<CohortListProps> = ({
     <div className="control-card" role="region" aria-label="Cohort Inspection and Editing">
       <div className="card-header">
         <h3 className="card-title">Resident Cohorts & Demand</h3>
-        <span className="badge badge-neutral">4 Shift Groups</span>
+        <span className="badge badge-neutral">{cohorts.length} Shift Groups</span>
       </div>
 
       <div className="cohorts-list">
@@ -53,9 +53,14 @@ export const CohortList: React.FC<CohortListProps> = ({
                     style={{ backgroundColor: style.bg, borderColor: style.border }}
                   />
                   <div>
-                    <h4 className="cohort-name">{cohort.name}</h4>
+                    <div className="cohort-name-title-row">
+                      <h4 className="cohort-name">{cohort.name}</h4>
+                      <span className={`badge ${cohort.level <= 3 ? 'badge-upper-level' : cohort.level >= 8 ? 'badge-deep-level' : 'badge-mid-level'}`}>
+                        L{cohort.level}
+                      </span>
+                    </div>
                     <span className="cohort-shift">
-                      Shift: {cohort.shiftLabel} • {cohort.populationPeople} residents
+                      {cohort.levelName ? `${cohort.levelName} • ` : ''}Shift: {cohort.shiftLabel} • {cohort.populationPeople} residents
                     </span>
                   </div>
                 </button>

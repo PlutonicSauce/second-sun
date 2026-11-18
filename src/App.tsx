@@ -132,6 +132,7 @@ export function App() {
             />
 
             <PolicyComparison
+              scenario={scenario}
               results={results}
               activePolicy={activePolicy}
               onSelectPolicy={setActivePolicy}

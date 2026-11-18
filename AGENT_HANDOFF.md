@@ -12,7 +12,8 @@
 The **SECOND SUN** application has been completely scaffolded, implemented, tested, and verified as a production-ready Vite + React 19 + TypeScript 5 single-page application.
 
 - **Reference smoke tests:** 6/6 PASS (`node engine-smoke.test.cjs`)
-- **Vitest unit & integration tests:** 38/38 PASS (`npm test`)
+- **Vitest unit & integration tests:** 42/42 PASS (`npm test`)
+- **Playwright browser verification:** 10/10 flows PASS (`npm run test:e2e` → 8 screenshots saved)
 - **TypeScript type checking:** 0 errors (`npm run typecheck`)
 - **ESLint 9 linting:** 0 errors (`npm run lint`)
 - **Production build:** SUCCESS in <700ms (`npm run build` → `dist/`)
@@ -25,22 +26,25 @@ The **SECOND SUN** application has been completely scaffolded, implemented, test
 ```bash
 cd "/Users/seshank/Documents/second sun"
 
-# 1. Run unit & integration tests (38 tests in engine and metrics)
+# 1. Run unit & integration tests (42 tests in engine and metrics)
 npm test
 
-# 2. Run reference prototype smoke tests (Node test runner)
+# 2. Run reference prototype smoke tests (Node test runner, 6 tests)
 node engine-smoke.test.cjs
 
-# 3. Type check the full TypeScript codebase
+# 3. Run Playwright headless browser verification & capture screenshots
+npm run test:e2e
+
+# 4. Type check the full TypeScript codebase
 npm run typecheck
 
-# 4. Lint with ESLint 9
+# 5. Lint with ESLint 9
 npm run lint
 
-# 5. Build production bundle (outputs to dist/)
+# 6. Build production bundle (outputs to dist/)
 npm run build
 
-# 6. Start local development server (runs on http://localhost:5173)
+# 7. Start local development server (runs on http://localhost:5173)
 npm run dev
 ```
 

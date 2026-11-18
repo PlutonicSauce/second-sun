@@ -1,13 +1,15 @@
 import React from 'react';
-import type { ScheduleResult, PolicyMode } from '../domain/types';
+import type { Scenario, ScheduleResult, PolicyMode } from '../domain/types';
 
 interface PolicyComparisonProps {
+  scenario: Scenario;
   results: Record<PolicyMode, ScheduleResult>;
   activePolicy: PolicyMode;
   onSelectPolicy: (policy: PolicyMode) => void;
 }
 
 export const PolicyComparison: React.FC<PolicyComparisonProps> = ({
+  scenario,
   results,
   activePolicy,
   onSelectPolicy,
@@ -28,18 +30,76 @@ export const PolicyComparison: React.FC<PolicyComparisonProps> = ({
     {
       id: 'directorate',
       name: 'Illustrative Directorate',
-      subtitle: 'Priority by Cohort Population Descending',
+      subtitle: 'Upper-Level Favoritism (Level 2–3 Prioritized First)',
       badge: 'Simulated Policy',
     },
   ];
 
+  // Helper to compute worst-served group for a result
+  const getWorstServed = (res: ScheduleResult) => {
+    let minRatio = Infinity;
+    let worstCohort = '';
+    let worstLevel = 0;
+
+    for (const c of scenario.cohorts) {
+      if (c.requestedSlots <= 0) continue;
+      const ratio = (res.got[c.id] ?? 0) / c.requestedSlots;
+      if (ratio < minRatio) {
+        minRatio = ratio;
+        worstCohort = c.name;
+        worstLevel = c.level;
+      }
+    }
+
+    if (minRatio === Infinity) return 'None';
+    return `${worstCohort} (L${worstLevel}): ${Math.round(minRatio * 100)}%`;
+  };
+
+  // Helper to compute tier coverage
+  const getTierCoverage = (res: ScheduleResult, minL: number, maxL: number) => {
+    const tierCohorts = scenario.cohorts.filter(c => c.level >= minL && c.level <= maxL && c.requestedSlots > 0);
+    if (!tierCohorts.length) return 'N/A';
+    const sum = tierCohorts.reduce((acc, c) => acc + (res.got[c.id] ?? 0) / c.requestedSlots, 0);
+    return `${Math.round((sum / tierCohorts.length) * 100)}%`;
+  };
+
+  const getTierInequalityGap = (res: ScheduleResult) => {
+    const upperCohorts = scenario.cohorts.filter(c => c.level <= 4 && c.requestedSlots > 0);
+    const deepCohorts = scenario.cohorts.filter(c => c.level >= 7 && c.requestedSlots > 0);
+    if (!upperCohorts.length || !deepCohorts.length) return 'N/A';
+    const upperAvg = upperCohorts.reduce((acc, c) => acc + (res.got[c.id] ?? 0) / c.requestedSlots, 0) / upperCohorts.length;
+    const deepAvg = deepCohorts.reduce((acc, c) => acc + (res.got[c.id] ?? 0) / c.requestedSlots, 0) / deepCohorts.length;
+    const gap = upperAvg - deepAvg;
+    return `${gap > 0 ? '+' : ''}${Math.round(gap * 100)}%`;
+  };
+
   const metricsRow = [
     {
       label: 'Minimum Group Coverage',
-      desc: 'Core fairness metric: lowest fraction of requested sessions granted to any group',
-      render: (m: ScheduleResult['metrics']) =>
-        m.minCov !== null ? `${Math.round(m.minCov * 100)}%` : 'N/A',
+      desc: 'Core fairness metric: lowest fraction of requested sessions granted to any single group',
+      render: (_m: ScheduleResult['metrics'], res: ScheduleResult) =>
+        res.metrics.minCov !== null ? `${Math.round(res.metrics.minCov * 100)}%` : 'N/A',
       highlightFair: true,
+    },
+    {
+      label: 'Worst-Served Group',
+      desc: 'The cohort that suffers the deepest deficit and their subterranean level',
+      render: (_m: ScheduleResult['metrics'], res: ScheduleResult) => getWorstServed(res),
+    },
+    {
+      label: 'Upper-Level Coverage (L2–L4)',
+      desc: 'Average coverage ratio for upper administrative and medical habitats',
+      render: (_m: ScheduleResult['metrics'], res: ScheduleResult) => getTierCoverage(res, 2, 4),
+    },
+    {
+      label: 'Deep-Level Coverage (L7–L9)',
+      desc: 'Average coverage ratio for deep infrastructure, utility, and ventilation crews',
+      render: (_m: ScheduleResult['metrics'], res: ScheduleResult) => getTierCoverage(res, 7, 9),
+    },
+    {
+      label: 'Level Inequality Gap',
+      desc: 'Upper-tier coverage minus Deep-tier coverage (Directorate favoritism metric)',
+      render: (_m: ScheduleResult['metrics'], res: ScheduleResult) => getTierInequalityGap(res),
     },
     {
       label: 'Total Sessions Scheduled',
@@ -147,7 +207,7 @@ export const PolicyComparison: React.FC<PolicyComparisonProps> = ({
                   <div className="metric-desc">{row.desc}</div>
                 </th>
                 {policies.map(p => {
-                  const val = row.render(results[p.id].metrics);
+                  const val = row.render(results[p.id].metrics, results[p.id]);
                   const isCurrent = activePolicy === p.id;
                   return (
                     <td
@@ -168,8 +228,9 @@ export const PolicyComparison: React.FC<PolicyComparisonProps> = ({
         <p>
           <strong>Scientific & Mathematical Candor:</strong> SECOND SUN uses a <em>greedy progressive-filling heuristic</em>,
           not a mathematically proven global max-min optimum. The Directorate policy is a simulated illustrative priority rule
-          (fictional, not actual government policy) to demonstrate how population-weighting starves smaller vital shift teams
-          (like Medical Support) under constrained resources.
+          (fictional, not actual government policy) to demonstrate how institutional favoritism toward upper administrative tiers
+          (Levels 2–4) starves deep subterranean workforces (such as Level 9 air ventilation and utilities) under rationed power.
+          All three policies face the exact same physical and power constraints.
         </p>
       </div>
     </div>

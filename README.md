@@ -29,7 +29,7 @@ The app computes three allocation policies under identical hard constraints and 
 |---|---|
 | **SECOND SUN (Fair)** | Greedy progressive-filling heuristic that maximises minimum cohort coverage |
 | **First-Come** | Cohorts served in input order; first to request fills first |
-| **Directorate** _(Illustrative)_ | Largest-population cohort is served first — fictional priority rule for comparison only |
+| **Directorate** _(Illustrative)_ | Upper-level cohorts served first (Levels 2–4 prioritized before deep Levels 7–9) — fictional priority rule modeling institutional inequality |
 
 ---
 

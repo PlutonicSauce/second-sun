@@ -57,17 +57,41 @@ The fair heuristic detects that B has lower coverage after A's first assignment 
 
 ## Hollow Level 9 — 60% Budget (2.28 kWh)
 
-**Config:** Same as above but `budgetKWh = 2.28` (simulating geothermal grid at 60%).
+**Config:** 4 cohorts (Medical S [L3], Hydroponics H [L5], Morning Maintenance M [L7], Night Ventilation N [L9]), 3 rooms (R1 600 W cap 60, R2 400 W cap 30, R3 500 W cap 40), `budgetKWh = 2.28` (60% geothermal shortage), `peakW = 1100 W`.
 
-| Policy | Total sessions | minCov |
-|---|---|---|
-| **Fair** | **9** | **0.50** |
-| **First-Come** | **7** | computed live |
-| **Directorate** _(Illustrative)_ | computed live | computed live |
+| Policy | Total sessions | minCov | avgCov | Allocation by Cohort (`got/req`) | Notes |
+|---|---|---|---|---|---|
+| **SECOND SUN (Fair)** | **9** | **0.50** | **60.4%** | S: 2/3 (67%), H: 3/4 (75%), M: 2/4 (50%), N: 2/4 (50%) | Every cohort receives at least 50% coverage |
+| **First-Come** | **7** | **0.00** | **43.8%** | M: 4/4 (100%), N: 3/4 (75%), H: 0/4 (0%), S: 0/3 (0%) | Input order starves later cohorts (H, S) |
+| **Directorate** _(Illustrative)_ | **7** | **0.00** | **50.0%** | S: 3/3 (100%), H: 4/4 (100%), M: 0/4 (0%), N: 0/4 (0%) | Upper levels (L3, L5) monopolize power; Deep levels (L7, L9) starved |
 
-At 60% budget, the fair heuristic still achieves minimum coverage of 0.50 — every cohort receives at least half their requested sessions. First-come delivers fewer total sessions and a lower minimum.
+At 60% budget:
+- **SECOND SUN** achieves a minimum coverage of **0.50** (no cohort has less than half their request served).
+- **First-Come** leaves two cohorts with **0%** coverage (minCov = 0.00).
+- **Directorate** (upper-levels-first) satisfies 100% of requests for upper levels (S on Level 3, H on Level 5), but leaves deep maintenance crews on Level 7 and Level 9 with **0%** coverage.
 
-`validate()` returns `[]` for all results.
+`validate()` returns `[]` (zero violations) for all three policies.
+
+---
+
+## Hollow Multi-Level Grid — 60% Budget (1.92 kWh of 3.2 kWh)
+
+**Config:** 5 cohorts spanning subterranean depth:
+- `A`: Directorate Staff (Level 2 Executive Wing, req: 3)
+- `S`: Trauma & Medical (Level 3 Central Ward, req: 3)
+- `H`: Hydroponics Crew (Level 5 Primary Food Decks, req: 4)
+- `M`: Utility Maintenance (Level 7 Main Conduits, req: 4)
+- `N`: Deep Vent & Sump (Level 9 Air Scrubbers, req: 4)
+
+Rooms: Central Atrium (R1, Level 4), Upper Sun-Lounge (R2, Level 2 — physically inaccessible to L7 and L9), Sub-Station Hall (R3, Level 7).
+
+| Policy | Total sessions | minCov | avgCov | Allocation by Cohort (`got/req`) |
+|---|---|---|---|---|
+| **SECOND SUN (Fair)** | **8** | **0.33** | **43.3%** | A: 1/3 (33%), S: 1/3 (33%), H: 2/4 (50%), M: 2/4 (50%), N: 2/4 (50%) |
+| **First-Come** | **6** | **0.00** | **40.0%** | A: 3/3 (100%), S: 3/3 (100%), H: 0/4 (0%), M: 0/4 (0%), N: 0/4 (0%) |
+| **Directorate** _(Illustrative)_ | **6** | **0.00** | **40.0%** | A: 3/3 (100%), S: 3/3 (100%), H: 0/4 (0%), M: 0/4 (0%), N: 0/4 (0%) |
+
+**Physical Room Constraint Verified:** Room R2 (Upper Sun-Lounge on Level 2) is only accessible to cohorts A (Level 2) and S (Level 3). Under all three policies, R2 is never assigned to Deep cohorts M (Level 7) or N (Level 9). `validate()` passes with zero violations.
 
 ---
 

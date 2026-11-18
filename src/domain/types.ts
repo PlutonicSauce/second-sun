@@ -13,6 +13,8 @@ export interface Room {
   permittedCohortIds: string[];
   /** Whether the room is currently operational. */
   enabled: boolean;
+  /** Physical habitat level where this room is located (e.g. Level 3). */
+  locationLevel?: number;
 }
 
 /**
@@ -40,6 +42,14 @@ export interface Cohort {
    * or measured circadian-rhythm outcomes.
    */
   preferredSlots: number[];
+  /**
+   * Subterranean habitat depth level (e.g. Level 3 = upper sector, Level 9 = deep sub-grid).
+   * Lower numbers indicate upper habitat levels; higher numbers indicate deeper levels.
+   * Fictional Directorate policy prioritizes upper levels first.
+   */
+  level: number;
+  /** Plain text sector descriptor (e.g. "Level 3 — Upper Clinic", "Level 9 — Deep Vent Shafts") */
+  levelName?: string;
 }
 
 /** A single scheduled session: one cohort in one room for one half-hour slot. */

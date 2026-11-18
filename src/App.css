@@ -130,6 +130,30 @@ body {
   color: #34d399;
 }
 
+.badge-upper-level {
+  background-color: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.badge-mid-level {
+  background-color: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.badge-deep-level {
+  background-color: rgba(167, 139, 250, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+}
+
+.cohort-name-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .header-actions {
   display: flex;
   gap: 0.5rem;

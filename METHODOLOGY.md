@@ -72,7 +72,7 @@ Cohorts are served in **input order**. For each cohort, the engine iterates thro
 
 > **CLEARLY LABELLED: "Illustrative Directorate Policy (Simulated) — fictional priority rule for comparison only. This does not represent actual government policy or behavior."**
 
-Identical to First-Come, except cohorts are **pre-sorted by `populationPeople` descending** (largest cohort gets highest priority), then by `id` for ties. Same energy, same rooms, same hard constraints — only the service order changes.
+Identical to First-Come, except cohorts are **pre-sorted by habitat `level` ascending** (upper levels like Level 2–4 get served first; deep subterranean infrastructure crews on Level 7–9 are placed at the back of the queue), then by `id` for ties. Same energy, same rooms, same hard physical constraints — only the service order changes. This directly models how administrative hierarchy advantages upper levels while starving deep shaft workers under rationed power.
 
 ---
 

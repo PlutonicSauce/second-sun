@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { rng, kwhToWm, solve, validate, fmtT, wm, SLOTS } from './engine';
-import { hollow, rationing, toy } from './presets';
+import { hollow, rationing, toy, multilevel } from './presets';
 
 // ---------------------------------------------------------------------------
 // Utility functions
@@ -259,22 +259,57 @@ describe('validate() detects injected bad assignment', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Directorate mode: largest cohort gets priority
+// Directorate mode: upper-level habitat prioritization (simulated policy)
 // ---------------------------------------------------------------------------
 
-describe('directorate mode', () => {
-  it('Medical support (smallest, 24 ppl) gets fewer sessions than Morning maintenance (largest, 48 ppl)', () => {
+describe('directorate mode — upper-level prioritization', () => {
+  it('prioritizes upper-level cohorts over deep lower-level cohorts under power shortage', () => {
     const scenario = hollow();
+    scenario.budgetKWh = 2.28; // 60% shortage
     const result = solve(scenario, 'directorate');
-    const morningGot = result.got['M'] ?? 0; // Morning maintenance, 48 ppl
-    const medicalGot = result.got['S'] ?? 0; // Medical support, 24 ppl
-    expect(morningGot).toBeGreaterThan(medicalGot);
+
+    // S (Level 3 - Upper) is served before N (Level 9 - Deep)
+    const upperCoverage = (result.got['S'] ?? 0) / scenario.cohorts.find(c => c.id === 'S')!.requestedSlots;
+    const deepCoverage = (result.got['N'] ?? 0) / scenario.cohorts.find(c => c.id === 'N')!.requestedSlots;
+
+    expect(upperCoverage).toBeGreaterThanOrEqual(deepCoverage);
+    expect(result.got['S']).toBe(3); // Upper level gets 100% (3/3)
   });
 
-  it('validate returns [] for directorate result', () => {
+  it('validate returns [] for directorate result across all presets', () => {
     const scenario = hollow();
     const result = solve(scenario, 'directorate');
     expect(validate(scenario, result)).toEqual([]);
+  });
+
+  it('strictly respects room access permissions and never assigns physically inaccessible rooms', () => {
+    const scenario = hollow();
+    // In hollow(), R2 is only permitted for S (Medical support).
+    // Morning maintenance (M) and Night ventilation (N) cannot access R2.
+    const modes = ['fair', 'first-come', 'directorate'] as const;
+    for (const mode of modes) {
+      const res = solve(scenario, mode);
+      for (const a of res.assignments) {
+        if (a.roomId === 'R2') {
+          expect(a.cohortId).toBe('S');
+        }
+      }
+      expect(validate(scenario, res)).toEqual([]);
+    }
+  });
+
+  it('validate() detects when a physically inaccessible room is assigned', () => {
+    const scenario = hollow();
+    const result = solve(scenario, 'fair');
+    // Inject invalid assignment: M (Morning maintenance) into R2 (Annex, restricted to S)
+    result.assignments.push({
+      cohortId: 'M',
+      roomId: 'R2',
+      slotIndex: 11,
+      actualPowerWatts: 400,
+    });
+    const violations = validate(scenario, result);
+    expect(violations).toContain('room access');
   });
 });
 
@@ -302,6 +337,50 @@ describe('all assignments within allowed windows', () => {
     for (const a of result.assignments) {
       const cohort = scenario.cohorts.find(c => c.id === a.cohortId)!;
       expect(cohort.allowedSlots).toContain(a.slotIndex);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Multilevel Grid Scenario tests (Levels 2, 4, 6, 8, 9)
+// ---------------------------------------------------------------------------
+
+describe('multilevel scenario: Directorate upper-level favoritism & room accessibility', () => {
+  it('Directorate mode favors Upper Level 2/3 and starves Deep Level 9 under budget pressure', () => {
+    const scenario = multilevel();
+    scenario.budgetKWh = 1.8; // Constrained budget
+    const dirResult = solve(scenario, 'directorate');
+    const fairResult = solve(scenario, 'fair');
+
+    // In Directorate mode, Level 2 Directorate Staff (A) gets served first
+    const dirUpperGot = dirResult.got['A'] ?? 0;
+    const dirDeepGot = dirResult.got['N'] ?? 0; // Deep vent crew (Level 9)
+
+    expect(dirUpperGot).toBe(3); // Upper level gets 100% (3/3)
+    expect(dirDeepGot).toBeLessThan(dirUpperGot); // Deep level gets starved
+
+    // Under SECOND SUN fair mode, progressive filling ensures Deep Level 9 is not completely starved
+    const fairDeepGot = fairResult.got['N'] ?? 0;
+    expect(fairDeepGot).toBeGreaterThanOrEqual(1);
+
+    expect(validate(scenario, dirResult)).toEqual([]);
+    expect(validate(scenario, fairResult)).toEqual([]);
+  });
+
+  it('R2 (Upper Lounge on Level 2) is NEVER assigned to Deep Level 7 or 9 crews under any policy', () => {
+    const scenario = multilevel();
+    const modes = ['fair', 'first-come', 'directorate'] as const;
+
+    for (const mode of modes) {
+      const res = solve(scenario, mode);
+      for (const a of res.assignments) {
+        if (a.roomId === 'R2') {
+          // R2 only permitted for A (Level 2) and S (Level 3)
+          expect(['A', 'S']).toContain(a.cohortId);
+          expect(['M', 'N']).not.toContain(a.cohortId);
+        }
+      }
+      expect(validate(scenario, res)).toEqual([]);
     }
   });
 });
