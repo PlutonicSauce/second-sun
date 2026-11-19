@@ -10,7 +10,7 @@ import {
 } from './domain/runsheet';
 
 import { OperatorHeader } from './components/OperatorHeader';
-import { PowerControl } from './components/PowerControl';
+import { SubterraneanVisualizer } from './components/SubterraneanVisualizer';
 import { FacilityRoomsControl } from './components/FacilityRoomsControl';
 import { EmergencyDeltaBanner } from './components/EmergencyDeltaBanner';
 import { RunSheet } from './components/RunSheet';
@@ -180,15 +180,16 @@ export function App() {
           />
         )}
 
-        {/* POWER CONTROL: Minimalist Interactive Energy Slider */}
-        <PowerControl
+        {/* THE CENTERPIECE: Subterranean Daylight Allocation Studio & Policy Comparison */}
+        <SubterraneanVisualizer
+          scenario={scenario}
+          activeResult={activeResult}
+          results={results}
+          activePolicy={activePolicy}
+          onSelectPolicy={setActivePolicy}
           budgetKWh={scenario.budgetKWh}
           baseBudgetKWh={BASE_BUDGET_KWH}
           onBudgetChange={handleBudgetChange}
-          sessionsCount={opMetrics.totalSessions}
-          residentsAffected={opMetrics.residentsAffected}
-          residentsServed={opMetrics.residentsServed}
-          personSessions={opMetrics.personSessions}
           onSimulateGeneratorFailure={handleSimulateGeneratorFailure}
           isEmergencySimulated={emergencyBaseline !== null}
         />

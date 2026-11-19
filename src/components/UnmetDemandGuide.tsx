@@ -16,7 +16,7 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
     const requested = cohort.requestedSlots;
     const scheduled = result.got[cohort.id] ?? 0;
     const pct = requested > 0 ? Math.round((scheduled / requested) * 100) : 100;
-    const why = result.why[cohort.id] || 'Fulfilled within electrical and room capacity limits.';
+    const rawWhy = result.why[cohort.id] || 'Fulfilled within electrical and room capacity limits.';
 
     // Preferred wake window count
     const assignedSlots = result.assignments
@@ -24,12 +24,23 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
       .map(a => a.slotIndex);
     const inWakeWindow = assignedSlots.filter(s => cohort.preferredSlots.includes(s)).length;
 
+    // Human-grounded operational explanation for facility supervisors
+    let humanExplanation = '';
+    if (scheduled === requested) {
+      humanExplanation = `Fully accommodated. All ${requested} requested sessions scheduled within eligible shift windows and room capacities.`;
+    } else if (scheduled === 0) {
+      humanExplanation = `Zero sessions scheduled tomorrow. Discretionary power budget was fully exhausted by higher-priority or earlier-queued tiers under active constraints.`;
+    } else {
+      humanExplanation = `Scheduled ${scheduled} of ${requested} requested sessions (${scheduled * 30} min) during pre-shift wake window. The remaining ${requested - scheduled} requested slots were deferred under the ${scenario.budgetKWh.toFixed(2)} kWh power cap to avoid blacking out other subterranean workgroups.`;
+    }
+
     return {
       cohort,
       requested,
       scheduled,
       pct,
-      why,
+      rawWhy,
+      humanExplanation,
       inWakeWindow,
     };
   });
@@ -42,7 +53,7 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
     <section className="unmet-guide-section no-print" aria-label="Crew Inquiry Reference">
       <div className="unmet-header">
         <div className="unmet-title-group">
-          <span className="runsheet-eyebrow">CREW INQUIRY REFERENCE</span>
+          <span className="runsheet-eyebrow">FACILITY SHIFT SUPERVISOR REFERENCE</span>
           <h2 className="unmet-title">When Shift Leaders Ask Why Hours Were Cut</h2>
           <p className="unmet-subline">
             During power rationing, use this reference to explain allocation decisions to crew supervisors respectfully and transparently.
@@ -59,7 +70,7 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
       </div>
 
       <div className="unmet-grid" role="list">
-        {cohortRows.map(({ cohort, requested, scheduled, pct, why, inWakeWindow }) => (
+        {cohortRows.map(({ cohort, requested, scheduled, pct, rawWhy, humanExplanation, inWakeWindow }) => (
           <div key={cohort.id} className="unmet-card" role="listitem">
             <div className="unmet-card-header">
               <div className="unmet-card-identity">
@@ -84,7 +95,7 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
             </div>
 
             <div className="unmet-explanation">
-              <p className="unmet-why-text">{why}</p>
+              <p className="unmet-why-text">{humanExplanation}</p>
               <div className="unmet-timing-note">
                 {scheduled > 0 ? (
                   <span>
@@ -95,6 +106,9 @@ export const UnmetDemandGuide: React.FC<UnmetDemandGuideProps> = ({
                     No sessions scheduled under current power budget.
                   </span>
                 )}
+                <span className="unmet-diagnostic-toggle" title={rawWhy}>
+                  Technical note: {rawWhy.length > 70 ? rawWhy.slice(0, 70) + '...' : rawWhy}
+                </span>
               </div>
             </div>
           </div>
