@@ -16,10 +16,9 @@ export const FacilityRoomsControl: React.FC<FacilityRoomsControlProps> = ({
     <div className="rooms-control-section no-print" aria-label="Facility Room Availability Controls">
       <div className="rooms-control-header">
         <div className="rooms-control-title-group">
-          <span className="control-eyebrow">FACILITY DISPATCH CONTROL</span>
-          <h3 className="rooms-control-title">Bright-Light Room Availability</h3>
+          <h2 className="rooms-control-title">Room availability</h2>
           <p className="rooms-control-desc">
-            Take a room offline for electrical or ballast maintenance. The scheduler recalculates available hours immediately.
+            Take a room offline to recalculate the plan.
           </p>
         </div>
       </div>
@@ -36,15 +35,11 @@ export const FacilityRoomsControl: React.FC<FacilityRoomsControlProps> = ({
                 <div className="room-card-top">
                   <span className="room-card-name">{room.name}</span>
                   <span className={`room-status-badge ${room.enabled ? 'status-online' : 'status-offline'}`}>
-                    {room.enabled ? (isAssigned ? 'Active Tomorrow' : 'Idle Tomorrow') : 'Offline (Maintenance)'}
+                    {room.enabled ? (isAssigned ? 'Booked' : 'Available') : 'Offline'}
                   </span>
                 </div>
                 <div className="room-card-specs">
-                  <span>Level {room.locationLevel ?? '?'}</span>
-                  <span>·</span>
-                  <span>{room.brightModeWatts}W Bright Mode</span>
-                  <span>·</span>
-                  <span>Capacity {room.capacityPeople}</span>
+                  Level {room.locationLevel ?? '?'} · {room.brightModeWatts} W · {room.capacityPeople} people
                 </div>
               </div>
 

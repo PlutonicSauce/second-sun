@@ -1,20 +1,25 @@
 import React from 'react';
-import type { Scenario, ScheduleResult } from '../domain/types';
+import type { Scenario, ScheduleResult, PolicyMode } from '../domain/types';
+import { policies } from '../domain/policies';
 import { fmtT } from '../domain/engine';
 import { consolidateRunSheetBookings } from '../domain/runsheet';
 
 interface RunSheetProps {
   scenario: Scenario;
   result: ScheduleResult;
+  activePolicy: PolicyMode;
   onPrint: () => void;
   onDownloadCsv: () => void;
+  onOpenHandover: () => void;
 }
 
 export const RunSheet: React.FC<RunSheetProps> = ({
   scenario,
   result,
+  activePolicy,
   onPrint,
   onDownloadCsv,
+  onOpenHandover,
 }) => {
   // Use tested consolidation logic that groups by (room, cohort) first
   const consolidatedBookings = consolidateRunSheetBookings(scenario, result);
@@ -25,21 +30,26 @@ export const RunSheet: React.FC<RunSheetProps> = ({
   const offlineRooms = scenario.rooms.filter(r => !r.enabled);
 
   return (
-    <section className="runsheet-section" aria-label="Operations Run Sheet">
+    <section className="runsheet-section" id="run-sheet" aria-labelledby="run-sheet-title">
       {/* Run Sheet Header */}
       <div className="runsheet-header">
         <div className="runsheet-title-group">
-          <span className="runsheet-eyebrow">FACILITY DISPATCH TIMETABLE</span>
-          <h2 className="runsheet-title">Tomorrow's Lighting Run Sheet</h2>
+          <span className="runsheet-eyebrow">THE HOLLOW · SYNTHETIC PLAN</span>
+          <h2 className="runsheet-title" id="run-sheet-title" tabIndex={-1}>Tomorrow’s lighting run sheet</h2>
           <p className="runsheet-subline">
-            Unlock rooms and energize bright-mode fixtures according to the verified schedule below.
+            <strong>{policies[activePolicy].name}</strong> · 00:00–24:00 · {result.metrics.sessions} half-hour sessions
+          </p>
+          <p className="runsheet-subline">
+            {result.metrics.kwh.toFixed(2)} of {scenario.budgetKWh.toFixed(2)} kWh used · {result.metrics.peakW} of {scenario.peakW} W peak load
           </p>
         </div>
 
         <div className="runsheet-actions no-print">
+          <a href="#allocation" className="btn-header-ghost">Back to allocation ↑</a>
           <button type="button" className="btn-apple-secondary" onClick={onDownloadCsv}>
             Download CSV
           </button>
+          <button type="button" className="btn-apple-secondary" onClick={onOpenHandover}>Handover & JSON</button>
           <button type="button" className="btn-apple-primary" onClick={onPrint}>
             Print Run Sheet
           </button>
@@ -59,7 +69,7 @@ export const RunSheet: React.FC<RunSheetProps> = ({
         <div className="runsheet-list" role="list">
           {consolidatedBookings.map(booking => {
             const startTime = fmtT(booking.startSlot);
-            const endTime = fmtT(booking.endSlot % 48);
+            const endTime = fmtT(booking.endSlot);
 
             return (
               <div key={booking.id} className="runsheet-row" role="listitem">
@@ -78,7 +88,7 @@ export const RunSheet: React.FC<RunSheetProps> = ({
                     Level {booking.roomLevel ?? '?'} · Max Capacity {booking.roomCapacity}
                   </span>
                   <span className="room-action-instruction">
-                    Action: Unlock room & energize to {booking.powerWatts}W
+                    Set bright mode to {booking.powerWatts} W
                   </span>
                 </div>
 
@@ -93,24 +103,24 @@ export const RunSheet: React.FC<RunSheetProps> = ({
                 {/* 4. Power & Timing Fit */}
                 <div className="runsheet-energy">
                   <span className="energy-val">
-                    {booking.powerWatts}W draw · {booking.energyKWh.toFixed(2)} kWh
+                    {booking.powerWatts}W draw · {booking.energyKWh} kWh
                   </span>
 
                   {booking.wakeWindowStatus === 'full' && (
-                    <span className="window-pill window-wake" title="All slots in this block fall within the crew's planned wake window">
-                      ★ Primary Wake Window
+                    <span className="window-pill window-wake" title="All slots in this block fall within the crew's preferred window">
+                      Preferred window
                     </span>
                   )}
 
                   {booking.wakeWindowStatus === 'partial' && (
-                    <span className="window-pill window-partial" title="A portion of this block falls within the crew's planned wake window">
+                    <span className="window-pill window-partial" title="Part of this block falls within the crew's preferred window">
                       {booking.preferredSummary}
                     </span>
                   )}
 
                   {booking.wakeWindowStatus === 'off-peak' && (
-                    <span className="window-pill window-offpeak" title="Scheduled during crew's off-peak active window">
-                      Off-Peak Window
+                    <span className="window-pill window-offpeak" title="Scheduled outside the crew's preferred window">
+                      Outside preferred window
                     </span>
                   )}
                 </div>
@@ -127,12 +137,12 @@ export const RunSheet: React.FC<RunSheetProps> = ({
           <ul className="idle-list">
             {offlineRooms.map(r => (
               <li key={r.id}>
-                <strong>{r.name} (Level {r.locationLevel ?? '?'})</strong> — Offline for maintenance. Taken offline by facility operator.
+                <strong>{r.name} (Level {r.locationLevel ?? '?'})</strong> — Offline in this scenario.
               </li>
             ))}
             {idleRooms.map(r => (
               <li key={r.id}>
-                <strong>{r.name} (Level {r.locationLevel ?? '?'})</strong> — Unscheduled tomorrow. Remained idle under current electrical budget, room capacity, or access constraints.
+                <strong>{r.name} (Level {r.locationLevel ?? '?'})</strong> — Available with no bookings in this plan.
               </li>
             ))}
           </ul>

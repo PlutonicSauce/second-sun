@@ -138,11 +138,11 @@ describe('RunSheet Consolidation Logic', () => {
 
     // First block: slots 0-2 (both preferred)
     expect(bookings[0].wakeWindowStatus).toBe('full');
-    expect(bookings[0].preferredSummary).toContain('Primary Wake Window');
+    expect(bookings[0].preferredSummary).toContain('Preferred window');
 
     // Second block: slots 3-5 (neither preferred)
     expect(bookings[1].wakeWindowStatus).toBe('off-peak');
-    expect(bookings[1].preferredSummary).toBe('Off-Peak');
+    expect(bookings[1].preferredSummary).toBe('Outside preferred window');
   });
 
   it('accurately reports partial wake window when only a subset of consecutive slots are preferred', () => {
@@ -173,7 +173,7 @@ describe('RunSheet Consolidation Logic', () => {
     expect(bookings[0].durationMinutes).toBe(60);
     expect(bookings[0].preferredSlotsCount).toBe(1);
     expect(bookings[0].wakeWindowStatus).toBe('partial');
-    expect(bookings[0].preferredSummary).toBe('Partial Wake Window (30 of 60 min)');
+    expect(bookings[0].preferredSummary).toBe('30 of 60 min in preferred window');
   });
 });
 
@@ -241,4 +241,14 @@ describe('Emergency Generator Failure Delta', () => {
     expect(delta.lostPersonSessions).toBe(baseResult.metrics.personSlots - emergencyResult.metrics.personSlots);
     expect(delta.cohortDeltas.length).toBeGreaterThan(0);
   });
+});
+
+it('keeps midnight as the end of the planning day and preserves watt-minute precision', () => {
+  const scenario = multilevel();
+  scenario.cohorts = [scenario.cohorts[4]];
+  scenario.cohorts[0].allowedSlots = [47, 0];
+  scenario.rooms[2].brightModeWatts = 501;
+  const bookings = consolidateRunSheetBookings(scenario, solve(scenario, 'fair'));
+  expect(bookings.map(booking => [booking.startSlot, booking.endSlot])).toEqual([[0, 1], [47, 48]]);
+  expect(bookings.map(booking => booking.energyKWh)).toEqual([0.2505, 0.2505]);
 });

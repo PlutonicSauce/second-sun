@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import type { Scenario, PolicyMode, ScheduleResult } from './domain/types';
+import { useMemo, useState } from 'react';
+import type { Scenario, PolicyMode } from './domain/types';
+import { solve } from './domain/engine';
 import { multilevel } from './domain/presets';
 import { useScheduler } from './hooks/useScheduler';
-import { downloadScheduleCsv } from './utils/export';
+import { exportScheduleCsv } from './utils/export';
 import {
   calculateOperationalMetrics,
   computeEmergencyScheduleDelta,
-  type EmergencyScheduleDelta,
 } from './domain/runsheet';
 
 import { OperatorHeader } from './components/OperatorHeader';
@@ -23,6 +23,7 @@ import './App.css';
 
 // Base full-capacity budget for the Hollow multi-level regional grid is 3.20 kWh.
 const BASE_BUDGET_KWH = 3.20;
+const EMERGENCY_BUDGET_KWH = BASE_BUDGET_KWH / 4;
 
 function getDefaultScenario(): Scenario {
   const s = multilevel();
@@ -31,7 +32,7 @@ function getDefaultScenario(): Scenario {
 }
 
 export function App() {
-  const [scenario, setScenario] = useState<Scenario>(getDefaultScenario);
+  const [normalScenario, setScenario] = useState<Scenario>(getDefaultScenario);
   const [activePolicy, setActivePolicy] = useState<PolicyMode>('fair');
 
   // Modals state
@@ -39,17 +40,16 @@ export function App() {
   const [isWhyScheduleOpen, setIsWhyScheduleOpen] = useState(false);
   const [isAboutScienceOpen, setIsAboutScienceOpen] = useState(false);
 
-  // Emergency Generator Failure Simulation State
-  const [emergencyBaseline, setEmergencyBaseline] = useState<{
-    previousResult: ScheduleResult;
-    previousBudgetKWh: number;
-  } | null>(null);
+  const [generatorFailed, setGeneratorFailed] = useState(false);
+  const [showEmergencyDetails, setShowEmergencyDetails] = useState(true);
+  const scenario = useMemo(() => generatorFailed
+    ? { ...normalScenario, budgetKWh: Math.min(normalScenario.budgetKWh, EMERGENCY_BUDGET_KWH) }
+    : normalScenario, [generatorFailed, normalScenario]);
 
-  // Live schedule solving across all three policies
-  const { results, validationErrors, activeResult } = useScheduler(
-    scenario,
-    activePolicy,
-  );
+  const { results, validationErrors, activeResult } = useScheduler(scenario, activePolicy);
+  const emergencyDelta = useMemo(() => generatorFailed && showEmergencyDetails
+    ? computeEmergencyScheduleDelta(scenario, solve(normalScenario, activePolicy), activeResult)
+    : null, [generatorFailed, showEmergencyDetails, scenario, normalScenario, activePolicy, activeResult]);
 
   const handleBudgetChange = (kwh: number) => {
     setScenario(prev => ({ ...prev, budgetKWh: Math.max(0, kwh) }));
@@ -63,36 +63,16 @@ export function App() {
   };
 
   const handleSimulateGeneratorFailure = () => {
-    if (emergencyBaseline) {
-      // Already simulated: toggle/restore back to previous budget
-      setScenario(prev => ({ ...prev, budgetKWh: emergencyBaseline.previousBudgetKWh }));
-      setEmergencyBaseline(null);
-    } else {
-      // Save current active result as baseline, and lower power to 25% emergency (0.80 kWh)
-      setEmergencyBaseline({
-        previousResult: activeResult,
-        previousBudgetKWh: scenario.budgetKWh,
-      });
-      setScenario(prev => ({ ...prev, budgetKWh: 0.80 }));
-    }
+    setGeneratorFailed(true);
+    setShowEmergencyDetails(true);
   };
 
-  const handleRestoreEmergency = () => {
-    if (emergencyBaseline) {
-      setScenario(prev => ({ ...prev, budgetKWh: emergencyBaseline.previousBudgetKWh }));
-      setEmergencyBaseline(null);
-    }
-  };
-
-  const handleAcknowledgeEmergency = () => {
-    // Keep the emergency plan active, dismissing the delta banner
-    setEmergencyBaseline(null);
-  };
+  const handleRestoreEmergency = () => setGeneratorFailed(false);
 
   const handleReset = () => {
     setScenario(getDefaultScenario());
     setActivePolicy('fair');
-    setEmergencyBaseline(null);
+    setGeneratorFailed(false);
   };
 
   const handlePrint = () => {
@@ -100,23 +80,13 @@ export function App() {
   };
 
   const handleDownloadCsv = () => {
-    downloadScheduleCsv(scenario, activeResult);
+    exportScheduleCsv(scenario, activeResult, activePolicy);
   };
 
   // Accurate operational metrics calculation
   const opMetrics = calculateOperationalMetrics(scenario, activeResult);
   const currentErrors = validationErrors[activePolicy] ?? [];
   const currentPct = Math.round((scenario.budgetKWh / BASE_BUDGET_KWH) * 100);
-
-  // Calculate live emergency delta if contingency simulation is active
-  let emergencyDelta: EmergencyScheduleDelta | null = null;
-  if (emergencyBaseline) {
-    emergencyDelta = computeEmergencyScheduleDelta(
-      scenario,
-      emergencyBaseline.previousResult,
-      activeResult,
-    );
-  }
 
   const activeRoomIds = new Set(activeResult.assignments.map(a => a.roomId));
 
@@ -145,40 +115,31 @@ export function App() {
 
         {/* HERO: The Situation & Corrected Metrics Strip */}
         <section className="operator-hero no-print" aria-label="Overview">
-          <div className="hero-eyebrow">FACILITY OPERATIONS · SECTOR 4 GEOTHERMAL RATIONING</div>
-          <h1 className="hero-title">Tomorrow's Lighting Operations Plan</h1>
+          <div className="hero-eyebrow">THE HOLLOW · FICTIONAL SCENARIO</div>
+          <h1 className="hero-title">Schedule bright-light access underground</h1>
           <p className="hero-lede">
-            Under Sector 4 geothermal rationing ({currentPct}% capacity), discretionary bright-light rooms are capped at {scenario.budgetKWh.toFixed(2)} kWh. Below is the operational unlock timetable for tomorrow's shifts across {opMetrics.levelSpanText}.
+            Residents in the Hollow live without sunlight. Geothermal rationing limits how often crews across {opMetrics.levelSpanText} can use shared bright-light rooms. Compare who gets time, then export tomorrow’s schedule.
           </p>
 
           <div className="hero-specs-strip">
             <div className="spec-item">
-              <span className="spec-val">{scenario.budgetKWh.toFixed(2)} kWh</span>
-              <span className="spec-label">Daily Power Cap ({currentPct}% of {BASE_BUDGET_KWH.toFixed(2)} kWh)</span>
+              <span className="spec-val">{currentPct}%</span>
+              <span className="spec-label">of the usual lighting budget ({scenario.budgetKWh.toFixed(2)} kWh)</span>
             </div>
             <div className="spec-divider" aria-hidden="true" />
             <div className="spec-item">
-              <span className="spec-val">{opMetrics.totalSessions} Sessions</span>
-              <span className="spec-label">Scheduled ({opMetrics.personSessions} Person-Sessions)</span>
+              <span className="spec-val">{opMetrics.totalSessions} of {opMetrics.totalSessions + activeResult.metrics.unmet}</span>
+              <span className="spec-label">half-hour sessions booked · {activeResult.metrics.unmet} unmet</span>
             </div>
             <div className="spec-divider" aria-hidden="true" />
             <div className="spec-item">
               <span className="spec-val">
                 {opMetrics.residentsServed} of {opMetrics.residentsAffected}
               </span>
-              <span className="spec-label">Residents Reached ({opMetrics.levelSpanText})</span>
+              <span className="spec-label">residents with at least one session</span>
             </div>
           </div>
         </section>
-
-        {/* EMERGENCY CONTINGENCY BANNER: Shown when Generator Failure simulation is active */}
-        {emergencyDelta && (
-          <EmergencyDeltaBanner
-            delta={emergencyDelta}
-            onRestore={handleRestoreEmergency}
-            onAcknowledge={handleAcknowledgeEmergency}
-          />
-        )}
 
         {/* THE CENTERPIECE: Subterranean Daylight Allocation Studio & Policy Comparison */}
         <SubterraneanVisualizer
@@ -187,11 +148,22 @@ export function App() {
           results={results}
           activePolicy={activePolicy}
           onSelectPolicy={setActivePolicy}
-          budgetKWh={scenario.budgetKWh}
+          normalBudgetKWh={normalScenario.budgetKWh}
           baseBudgetKWh={BASE_BUDGET_KWH}
           onBudgetChange={handleBudgetChange}
           onSimulateGeneratorFailure={handleSimulateGeneratorFailure}
-          isEmergencySimulated={emergencyBaseline !== null}
+          isEmergencySimulated={generatorFailed}
+          onRestoreGenerator={handleRestoreEmergency}
+          onShowEmergencyDetails={() => setShowEmergencyDetails(true)}
+          emergencyDetails={emergencyDelta && (
+            <EmergencyDeltaBanner
+              delta={emergencyDelta}
+              onRestore={handleRestoreEmergency}
+              onAcknowledge={() => setShowEmergencyDetails(false)}
+              normalBudgetKWh={normalScenario.budgetKWh}
+              emergencyBudgetKWh={scenario.budgetKWh}
+            />
+          )}
         />
 
         {/* OPERATIONAL EDITING: Room Availability & Maintenance Toggles */}
@@ -205,15 +177,16 @@ export function App() {
         <RunSheet
           scenario={scenario}
           result={activeResult}
+          activePolicy={activePolicy}
           onPrint={handlePrint}
           onDownloadCsv={handleDownloadCsv}
+          onOpenHandover={() => setIsHandoverOpen(true)}
         />
 
         {/* SUPPORT: Unmet Demand Reference for Crew Inquiries */}
         <UnmetDemandGuide
           scenario={scenario}
           result={activeResult}
-          onOpenWhyThisSchedule={() => setIsWhyScheduleOpen(true)}
         />
       </main>
 
@@ -224,7 +197,7 @@ export function App() {
             <strong>SECOND SUN</strong> — Facility Operations Planner · The Hollow 2087
           </div>
           <div className="footer-right">
-            Deterministic progressive-filling heuristic. Integer watt-minute accounting. Life-safety emergency lighting strictly excluded.
+            Emergency, exit and essential task lighting are outside this plan.
           </div>
         </div>
       </footer>
@@ -242,7 +215,6 @@ export function App() {
       <WhyThisScheduleModal
         isOpen={isWhyScheduleOpen}
         onClose={() => setIsWhyScheduleOpen(false)}
-        scenario={scenario}
         results={results}
         activePolicy={activePolicy}
         onSelectPolicy={setActivePolicy}

@@ -199,7 +199,7 @@ export function toy(): Scenario {
 export function multilevel(): Scenario {
   return {
     id: 'multilevel',
-    title: 'Hollow Multi-Level Grid (Levels 2, 4, 6, 8, 9)',
+    title: 'Hollow Multi-Level Grid (Levels 2–9)',
     description:
       'Five cohorts from upper administrative tiers down to deep vent sumps compete for regional bright-light halls. ' +
       'Demonstrates systemic disadvantage of deep-level crews under Directorate allocation.',

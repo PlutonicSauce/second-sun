@@ -2,6 +2,7 @@
 // Pure domain logic with 100% testable functions.
 
 import type { Scenario, ScheduleResult, Assignment, Cohort, Room } from './types';
+import { wm } from './engine';
 
 export type WakeWindowStatus = 'full' | 'partial' | 'off-peak';
 
@@ -85,10 +86,10 @@ export function consolidateRunSheetBookings(
   const roomMap = new Map<string, Room>(scenario.rooms.map(r => [r.id, r]));
   const cohortMap = new Map<string, Cohort>(scenario.cohorts.map(c => [c.id, c]));
 
-  // Group assignments by composite key: roomId + '::' + cohortId
+  // Group assignments by room and cohort before merging adjacent slots.
   const groups = new Map<string, Assignment[]>();
   for (const asg of result.assignments) {
-    const key = `${asg.roomId}::${asg.cohortId}`;
+    const key = JSON.stringify([asg.roomId, asg.cohortId]);
     let list = groups.get(key);
     if (!list) {
       list = [];
@@ -99,8 +100,8 @@ export function consolidateRunSheetBookings(
 
   const consolidated: ConsolidatedBooking[] = [];
 
-  for (const [key, asgs] of groups.entries()) {
-    const [roomId, cohortId] = key.split('::');
+  for (const asgs of groups.values()) {
+    const { roomId, cohortId } = asgs[0];
     const room = roomMap.get(roomId);
     const cohort = cohortMap.get(cohortId);
 
@@ -141,21 +142,21 @@ export function consolidateRunSheetBookings(
     function pushBooking(start: number, end: number, prefCount: number, watts: number) {
       const slotsCount = end - start;
       const durationMin = slotsCount * 30;
-      const energyKWh = (watts * 0.5 * slotsCount) / 1000;
+      const energyKWh = wm(watts) * slotsCount / 60_000;
 
       let wakeWindowStatus: WakeWindowStatus = 'off-peak';
-      let preferredSummary = 'Off-Peak';
+      let preferredSummary = 'Outside preferred window';
 
       if (prefCount === slotsCount) {
         wakeWindowStatus = 'full';
-        preferredSummary = '★ Primary Wake Window';
+        preferredSummary = 'Preferred window';
       } else if (prefCount > 0) {
         wakeWindowStatus = 'partial';
-        preferredSummary = `Partial Wake Window (${prefCount * 30} of ${durationMin} min)`;
+        preferredSummary = `${prefCount * 30} of ${durationMin} min in preferred window`;
       }
 
       consolidated.push({
-        id: `${roomId}-${cohortId}-${start}-${end}`,
+        id: JSON.stringify([roomId, cohortId, start, end]),
         roomId,
         roomName: room?.name ?? roomId,
         roomLevel: room?.locationLevel,
@@ -170,7 +171,7 @@ export function consolidateRunSheetBookings(
         slotsCount,
         durationMinutes: durationMin,
         powerWatts: watts,
-        energyKWh: parseFloat(energyKWh.toFixed(3)),
+        energyKWh,
         preferredSlotsCount: prefCount,
         wakeWindowStatus,
         preferredSummary,

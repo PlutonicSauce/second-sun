@@ -19,17 +19,47 @@ export const MIN = 30; // minutes per half-hour slot
  * When a === b returns []. Valid inputs: a, b in [0, 47].
  */
 export function rng(a: number, b: number): number[] {
-  if (a === b) return [];
-  const o: number[] = [];
-  let i = a;
-  // Guard: at most SLOTS iterations to prevent infinite loops on bad input
-  let guard = 0;
-  while (i !== b && guard < SLOTS) {
-    o.push(i);
-    i = (i + 1) % SLOTS;
-    guard++;
+  if (!isSlot(a) || !isSlot(b)) throw new RangeError('Range endpoints must be slot indices from 0 to 47.');
+  const slots: number[] = [];
+  for (let slot = a; slot !== b; slot = (slot + 1) % SLOTS) slots.push(slot);
+  return slots;
+}
+
+function isSlot(value: number): boolean {
+  return Number.isInteger(value) && value >= 0 && value < SLOTS;
+}
+
+function checkScenario(scenario: Scenario): void {
+  if (!Number.isFinite(scenario.budgetKWh) || scenario.budgetKWh < 0 ||
+      !Number.isSafeInteger(kwhToWm(scenario.budgetKWh))) {
+    throw new RangeError('The energy budget must be finite, non-negative and representable in watt-minutes.');
   }
-  return o;
+  if (!Number.isSafeInteger(scenario.peakW) || scenario.peakW <= 0) {
+    throw new RangeError('The peak power cap must be a positive integer.');
+  }
+  const roomIds = new Set(scenario.rooms.map(room => room.id));
+  const cohortIds = new Set(scenario.cohorts.map(cohort => cohort.id));
+  if (roomIds.size !== scenario.rooms.length || cohortIds.size !== scenario.cohorts.length) {
+    throw new RangeError('Room IDs and cohort IDs must be unique within their own lists.');
+  }
+
+  for (const room of scenario.rooms) {
+    if (!Number.isSafeInteger(room.capacityPeople) || room.capacityPeople <= 0 ||
+        !Number.isSafeInteger(wm(room.brightModeWatts)) ||
+        !Number.isSafeInteger(room.brightModeWatts) || room.brightModeWatts <= 0) {
+      throw new RangeError(`Room ${room.id} needs a positive integer capacity and wattage.`);
+    }
+  }
+  for (const cohort of scenario.cohorts) {
+    if (!Number.isSafeInteger(cohort.populationPeople) || cohort.populationPeople <= 0 ||
+        !Number.isSafeInteger(cohort.requestedSlots) || cohort.requestedSlots < 0) {
+      throw new RangeError(`Cohort ${cohort.id} needs a positive integer population and a non-negative integer request count.`);
+    }
+    if (![cohort.allowedSlots, cohort.quietSlots, cohort.preferredSlots]
+      .every(slots => Array.isArray(slots) && [...slots].every(isSlot))) {
+      throw new RangeError(`Cohort ${cohort.id} windows must contain only slot indices from 0 to 47.`);
+    }
+  }
 }
 
 /** Convert kilowatt-hours to watt-minutes. */
@@ -65,7 +95,7 @@ export function candidates(scenario: Scenario, cohort: Cohort): Candidate[] {
   const result: Candidate[] = [];
   for (const r of scenario.rooms) {
     if (!r.enabled) continue;
-    if (!cohort.permittedRoomIds.includes(r.id)) continue;
+    if (!cohort.permittedRoomIds.includes(r.id) || !r.permittedCohortIds.includes(cohort.id)) continue;
     if (r.capacityPeople < cohort.populationPeople) continue;
     for (const s of allowed) {
       if (!quiet.has(s)) result.push({ r, s });
@@ -82,15 +112,16 @@ export function candidates(scenario: Scenario, cohort: Cohort): Candidate[] {
  *    coverage ratio each round. NOT a proven globally optimal solver.
  *  - 'first-come': serve cohorts in input order.
  *  - 'directorate': Illustrative Directorate Policy (Simulated) — fictional, NOT
- *    actual government behavior. Priority by population descending.
+ *    actual government behavior. Upper levels are served first.
  */
 export function solve(scenario: Scenario, mode: PolicyMode): ScheduleResult {
+  checkScenario(scenario);
   const budget = kwhToWm(scenario.budgetKWh);
   const peak = scenario.peakW;
   let usedWm = 0;
 
   // Pre-compute candidates per cohort
-  const cand: Record<string, Candidate[]> = {};
+  const cand: Record<string, Candidate[]> = Object.create(null);
   for (const c of scenario.cohorts) {
     cand[c.id] = candidates(scenario, c);
   }
@@ -98,7 +129,7 @@ export function solve(scenario: Scenario, mode: PolicyMode): ScheduleResult {
   const roomUse = new Set<string>(); // "roomId|slotIndex"
   const cohUse = new Set<string>();  // "cohortId|slotIndex"
   const slotW = new Array<number>(SLOTS).fill(0);
-  const got: Record<string, number> = {};
+  const got: Record<string, number> = Object.create(null);
   const assignments: Assignment[] = [];
 
   for (const c of scenario.cohorts) got[c.id] = 0;
@@ -195,7 +226,7 @@ export function solve(scenario: Scenario, mode: PolicyMode): ScheduleResult {
   };
 
   // Build why-text per cohort
-  const why: Record<string, string> = {};
+  const why: Record<string, string> = Object.create(null);
   for (const c of scenario.cohorts) {
     const un = c.requestedSlots - got[c.id];
     if (c.requestedSlots <= 0) { why[c.id] = 'No request.'; continue; }
@@ -236,7 +267,7 @@ export function validate(scenario: Scenario, result: ScheduleResult): string[] {
   const roomSeen: Record<string, boolean> = {};   // "roomId|slotIndex"
   const cohSeen: Record<string, boolean> = {};    // "cohortId|slotIndex"
   const slotWatts = new Array<number>(SLOTS).fill(0);
-  const count: Record<string, number> = {};
+  const count: Record<string, number> = Object.create(null);
   let totalWm = 0;
 
   for (const a of result.assignments) {
@@ -244,11 +275,13 @@ export function validate(scenario: Scenario, result: ScheduleResult): string[] {
     const room = scenario.rooms.find(x => x.id === a.roomId);
 
     if (!cohort || !room) { violations.push('unknown ref'); continue; }
+    if (!isSlot(a.slotIndex)) { violations.push('invalid slot index'); continue; }
+    if (a.actualPowerWatts !== room.brightModeWatts) violations.push('incorrect room wattage');
     if (!room.enabled) violations.push('disabled room');
     if (!cohort.allowedSlots.includes(a.slotIndex)) violations.push('outside window');
     if (cohort.quietSlots.includes(a.slotIndex)) violations.push('quiet slot');
     if (room.capacityPeople < cohort.populationPeople) violations.push('capacity');
-    if (!cohort.permittedRoomIds.includes(room.id)) violations.push('room access');
+    if (!cohort.permittedRoomIds.includes(room.id) || !room.permittedCohortIds.includes(cohort.id)) violations.push('room access');
 
     const rKey = room.id + '|' + a.slotIndex;
     if (roomSeen[rKey]) violations.push('room double-booked');
@@ -258,8 +291,8 @@ export function validate(scenario: Scenario, result: ScheduleResult): string[] {
     if (cohSeen[cKey]) violations.push('cohort double-booked');
     cohSeen[cKey] = true;
 
-    slotWatts[a.slotIndex] += a.actualPowerWatts;
-    totalWm += wm(a.actualPowerWatts);
+    slotWatts[a.slotIndex] += room.brightModeWatts;
+    totalWm += wm(room.brightModeWatts);
     count[a.cohortId] = (count[a.cohortId] ?? 0) + 1;
   }
 

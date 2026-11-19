@@ -1,97 +1,43 @@
 # SECOND SUN
 
-> **SIMULATED DATA — Hollow is a fictional underground setting. All scenarios, cohorts, and results are synthetic.**
+SECOND SUN schedules access to shared bright-light rooms in the Hollow, a fictional underground settlement experiencing geothermal rationing. It compares allocation policies and produces a day plan for a shift lead. Built for Patriot HackFest Fall 2026, Life Underground.
 
-A fairness-aware scheduler for shared bright-light room access under rationed discretionary electricity. Built for Patriot HackFest Fall 2026 — Track: Life Underground.
+## Run locally
 
----
+Use Node.js 22 or newer.
 
-## Quick Start
-
-```bash
-npm install
-npm run dev      # → http://localhost:5173
-npm test         # → Vitest unit + integration suite
-npm run build    # → production bundle in dist/
+```sh
+npm ci
+npm run dev
 ```
 
-No backend. No database. All computation runs in-browser via the TypeScript domain engine.
+Open the local URL printed by Vite. The app runs entirely in the browser.
 
----
+## Use the planner
 
-## Product Thesis
+1. Start at 60% of the usual lighting budget. The overview separates residents with at least one booking from the number of half-hour requests filled.
+2. Switch between **SECOND SUN**, **Directorate** and **First-come** to compare crew access under the same limits.
+3. Change the budget or take rooms offline. **Simulate generator failure** applies a 0.80 kWh ceiling. The comparison uses the current room settings and policy on both sides. Ending the simulation returns to your current baseline budget.
+4. Open **View run sheet** for the active room bookings and peak load. Print the schedule, download CSV or JSON, or copy a shift handover.
 
-Underground residents on shift schedules need access to shared rooms with tunable bright lighting. During a power shortage, demand exceeds supply. SECOND SUN answers: **who gets access to which room, in which time slots, within a hard energy budget — and is that allocation fair?**
+The app uses one bundled fictional scenario. It models one 24-hour planning day and books each crew together in a room large enough to hold it. Schedule edits live in the current browser session. Shift, quiet and preferred times are synthetic planning inputs. Emergency, exit and essential task lighting are outside the model.
 
-The app computes three allocation policies under identical hard constraints and lets users compare them in real time:
+## Maintain and verify
 
-| Policy | Description |
-|---|---|
-| **SECOND SUN (Fair)** | Greedy progressive-filling heuristic that maximises minimum cohort coverage |
-| **First-Come** | Cohorts served in input order; first to request fills first |
-| **Directorate** _(Illustrative)_ | Upper-level cohorts served first (Levels 2–4 prioritized before deep Levels 7–9) — fictional priority rule modeling institutional inequality |
+- `src/domain/presets.ts` defines the scenario inputs. Update these to model other rooms or crews.
+- `src/domain/engine.ts` contains common constraints, the three scheduling policies and independent assignment validation. SECOND SUN uses a deterministic greedy heuristic.
+- `src/domain/runsheet.ts` combines adjacent bookings for the display and handover. `src/utils/export.ts` handles the downloads.
 
----
+```sh
+npm run typecheck
+npm run lint
+npm test
+node --test engine-smoke.test.cjs
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
 
-## Tech Stack
+Browser checks serve the built bundle locally and write screenshots into a temporary directory. Set `SECOND_SUN_SCREENSHOTS` to choose another destination.
 
-| Layer | Choice | Why |
-|---|---|---|
-| Bundler | Vite 6 | Fast HMR, zero-config TS |
-| UI | React 19 + TypeScript 5 | Component model, type safety |
-| Styling | CSS Modules | No build-time dependency on a UI framework |
-| Tests | Vitest 2 | Native ESM, same config as Vite |
-| Backend | **None** | Engine is pure TS; no server needed |
-
----
-
-## Constraints & Assumptions
-
-- **Synthetic data only.** No real residents, no real sensor measurements.
-- **One planning day** = 48 half-hour slots (indices 0–47, midnight to midnight).
-- **Energy budget** is for *discretionary* access lighting only. Emergency, exit, and essential task lighting are **excluded** from this budget and control plane.
-- **Whole-cohort room booking.** A cohort books a room for a slot as a group; splitting across rooms is not modelled (documented limitation).
-- **Preferred slots** are user-entered planning assumptions (shift schedules, wake/sleep times). They are **not** clinical prescriptions or circadian dose calculations.
-- The fair scheduler is a **greedy heuristic**, not a provably globally optimal solver.
-- CCT (colour temperature) is **not** used as a biological proxy. See citation [4] below.
-
----
-
-## Interaction Summary
-
-1. **Pick or customise a scenario** — set rooms, cohorts, energy budget, peak power cap.
-2. **Run all three policies** — results appear side-by-side on the timeline.
-3. **Adjust the budget slider** — watch allocations recompute live.
-4. **Inspect fairness metrics** — minimum coverage, average coverage, gap, preferred-window hit rate.
-5. **Export** the full schedule as JSON or CSV.
-6. **Read the Methodology panel** in-app for constraint definitions and disclaimers.
-
----
-
-## Further Reading
-
-- [METHODOLOGY.md](./METHODOLOGY.md) — Algorithm details, constraint definitions, limitations
-- [EVALUATION.md](./EVALUATION.md) — Tested scenario results (reproduce with `npm test`)
-- [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) — 60–90 s walkthrough for the demo video
-- [SUBMISSION.md](./SUBMISSION.md) — Hackathon submission metadata
-
----
-
-## Scientific References
-
-The following publications informed the framing of bright-light access as a scheduling problem for shift-working populations. **This app does not perform circadian or biological calculations.**
-
-1. CIE Position Statement — Integrative Lighting: Recommending Proper Light at the Proper Time (3rd ed.)  
-   <https://www.cie.co.at/publications/cie-position-statement-integrative-lighting-recommending-proper-light-proper-time-3rd>
-
-2. Harding et al. (2023) — Recommendations for Daytime, Evening, and Nighttime Indoor Light Exposure to Best Support Physiology, Sleep, and Wakefulness in Healthy Adults. *PLOS Biology.*  
-   <https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.3001571>
-
-3. Blume et al. (2024) — Shift Work and Light Exposure. *PubMed* (PMID 38934353).  
-   <https://pubmed.ncbi.nlm.nih.gov/38934353/>
-
-4. Kruithof et al. (2022) — CCT is not a valid proxy for circadian stimulus. *Scientific Reports.*  
-   <https://www.nature.com/articles/s41598-022-21755-7>
-
-5. OSHA 1910.37 — Maintenance, Safeguards, and Operational Features for Exit Routes (emergency lighting context).  
-   <https://www.osha.gov/laws-regs/regulations/standardnumber/1910/1910.37>
+[Methodology](./METHODOLOGY.md) · [Evaluation](./EVALUATION.md) · [Demo script](./DEMO_SCRIPT.md) · [Submission draft](./SUBMISSION.md)

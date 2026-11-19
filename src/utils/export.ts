@@ -1,44 +1,54 @@
 import type { Scenario, ScheduleResult, PolicyMode } from '../domain/types';
-import { fmtT } from '../domain/engine';
+import { fmtT, wm } from '../domain/engine';
+import { policies } from '../domain/policies';
+import { calculateOperationalMetrics, consolidateRunSheetBookings } from '../domain/runsheet';
+
+const planningDay = 'Cycle 2087-D42 (00:00–24:00)';
+
+function download(content: string, type: string, filename: string): void {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function csvField(value: string | number): string {
+  if (typeof value === 'number') return String(value);
+  const text = /^[\s]*[=+@-]|^[\t\r\n]/.test(value) ? "'" + value : value;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
 
 export function exportScenarioJson(
   scenario: Scenario,
   results: Record<PolicyMode, ScheduleResult>,
-  activePolicy: PolicyMode = 'fair',
+  activePolicy: PolicyMode,
 ): void {
+  const result = results[activePolicy];
+  const roomMap = new Map(scenario.rooms.map(room => [room.id, room]));
+  const cohortMap = new Map(scenario.cohorts.map(cohort => [cohort.id, cohort]));
   const payload = {
     exportedAt: new Date().toISOString(),
-    horizon: 'Cycle 2087-D42 (24-Hour Planning Horizon 00:00–23:30)',
-    system: 'SECOND SUN — Discretionary Bright-Light Operations Planner',
-    scenario: {
-      id: scenario.id,
-      title: scenario.title,
-      description: scenario.description,
-      budgetKWh: scenario.budgetKWh,
-      peakW: scenario.peakW,
-      rooms: scenario.rooms,
-      cohorts: scenario.cohorts,
-      assumptions: scenario.assumptions,
-    },
+    horizon: planningDay,
+    system: 'SECOND SUN',
+    scenario,
     activeSchedule: {
       policy: activePolicy,
-      metrics: results[activePolicy].metrics,
-      assignments: results[activePolicy].assignments.map(a => {
-        const room = scenario.rooms.find(r => r.id === a.roomId);
-        const cohort = scenario.cohorts.find(c => c.id === a.cohortId);
-        return {
-          ...a,
-          startTime: fmtT(a.slotIndex),
-          endTime: fmtT((a.slotIndex + 1) % 48),
-          roomName: room?.name,
-          cohortName: cohort?.name,
-          population: cohort?.populationPeople,
-          energyKWh: parseFloat(((a.actualPowerWatts * 0.5) / 1000).toFixed(3)),
-          isPreferredWindow: cohort ? cohort.preferredSlots.includes(a.slotIndex) : false,
-        };
-      }),
-      unmetRequests: results[activePolicy].metrics.unmet,
-      constraintsFeedback: results[activePolicy].why,
+      metrics: result.metrics,
+      bookings: consolidateRunSheetBookings(scenario, result),
+      assignments: [...result.assignments].sort((a, b) => a.slotIndex - b.slotIndex).map(a => ({
+        ...a,
+        startTime: fmtT(a.slotIndex),
+        endTime: fmtT(a.slotIndex + 1),
+        roomName: roomMap.get(a.roomId)?.name,
+        cohortName: cohortMap.get(a.cohortId)?.name,
+        population: cohortMap.get(a.cohortId)?.populationPeople,
+        energyKWh: wm(a.actualPowerWatts) / 60_000,
+        isPreferredWindow: cohortMap.get(a.cohortId)?.preferredSlots.includes(a.slotIndex) ?? false,
+      })),
+      unmetRequests: result.metrics.unmet,
+      constraintsFeedback: result.why,
     },
     allPolicyMetrics: {
       fairHeuristic: results.fair.metrics,
@@ -46,24 +56,13 @@ export function exportScenarioJson(
       directorateBaseline: results.directorate.metrics,
     },
   };
-
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `second-sun-operations-plan-${scenario.id}-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export function downloadScheduleCsv(scenario: Scenario, result: ScheduleResult): void {
-  exportScheduleCsv(scenario, { fair: result, 'first-come': result, directorate: result }, 'fair');
+  download(JSON.stringify(payload, null, 2), 'application/json', `second-sun-${scenario.id}-${activePolicy}.json`);
 }
 
 export function exportScheduleCsv(
   scenario: Scenario,
-  results: Record<PolicyMode, ScheduleResult>,
-  activePolicy: PolicyMode = 'fair',
+  result: ScheduleResult,
+  activePolicy: PolicyMode,
 ): void {
   const cohortMap = new Map(scenario.cohorts.map(c => [c.id, c]));
   const roomMap = new Map(scenario.rooms.map(r => [r.id, r]));
@@ -88,45 +87,36 @@ export function exportScheduleCsv(
 
   const rows: string[] = [headers.join(',')];
 
-  const res = results[activePolicy];
-  const sortedAssignments = [...res.assignments].sort((a, b) => a.slotIndex - b.slotIndex);
+  const sortedAssignments = [...result.assignments].sort((a, b) => a.slotIndex - b.slotIndex);
 
   for (const a of sortedAssignments) {
     const cohort = cohortMap.get(a.cohortId);
     const room = roomMap.get(a.roomId);
     const isPref = cohort ? cohort.preferredSlots.includes(a.slotIndex) : false;
     const startTime = fmtT(a.slotIndex);
-    const endTime = fmtT((a.slotIndex + 1) % 48);
-    const energyKWh = ((a.actualPowerWatts * 0.5) / 1000).toFixed(3);
+    const endTime = fmtT(a.slotIndex + 1);
+    const energyKWh = wm(a.actualPowerWatts) / 60_000;
 
     const row = [
-      '"Cycle 2087-D42 (24h)"',
-      `"${activePolicy}"`,
+      planningDay,
+      activePolicy,
       a.slotIndex,
-      `"${startTime}"`,
-      `"${endTime}"`,
-      `"${a.roomId}"`,
-      `"${room ? room.name : ''}"`,
+      startTime,
+      endTime,
+      a.roomId,
+      room?.name ?? '',
       room?.locationLevel ?? '',
-      `"${a.cohortId}"`,
-      `"${cohort ? cohort.name : ''}"`,
+      a.cohortId,
+      cohort?.name ?? '',
       cohort?.level ?? '',
-      cohort ? cohort.populationPeople : '',
+      cohort?.populationPeople ?? '',
       a.actualPowerWatts,
       energyKWh,
       isPref ? 'TRUE' : 'FALSE',
     ];
-    rows.push(row.join(','));
+    rows.push(row.map(csvField).join(','));
   }
-
-  const csvContent = rows.join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `second-sun-schedule-${scenario.id}-${activePolicy}-${Date.now()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  download(rows.join('\r\n'), 'text/csv;charset=utf-8;', `second-sun-${scenario.id}-${activePolicy}.csv`);
 }
 
 /**
@@ -137,65 +127,41 @@ export function generateShiftHandoverBrief(
   result: ScheduleResult,
   policy: PolicyMode,
 ): string {
-  const roomMap = new Map(scenario.rooms.map(r => [r.id, r]));
-  const cohortMap = new Map(scenario.cohorts.map(c => [c.id, c]));
-
-  const sorted = [...result.assignments].sort((a, b) => a.slotIndex - b.slotIndex);
-
-  const lines: string[] = [
-    '========================================================================',
-    '       SECOND SUN — DISCRETIONARY LIGHTING OPERATIONS HANDOVER BRIEF     ',
-    '========================================================================',
-    `HORIZON:           Cycle 2087-D42 (24-Hour Horizon 00:00–23:30)`,
-    `SCENARIO:          ${scenario.title}`,
-    `SCHEDULING POLICY: ${policy.toUpperCase()} (Progressive-Filling Heuristic)`,
-    `GENERATED AT:      ${new Date().toISOString()}`,
-    '------------------------------------------------------------------------',
-    '1. ELECTRICAL & FACILITY CONSTRAINTS',
-    `   Discretionary Energy Budget: ${scenario.budgetKWh.toFixed(2)} kWh`,
-    `   Simultaneous Power Cap:      ${scenario.peakW} W`,
-    `   Energy Consumed by Plan:     ${result.metrics.kwh.toFixed(2)} kWh (${Math.round((result.metrics.kwh / scenario.budgetKWh) * 100)}% of limit)`,
-    `   Peak Simultaneous Load:      ${result.metrics.peakW} W`,
-    `   Sessions Operational:        ${result.metrics.sessions} half-hour sessions (${result.metrics.sessions * 0.5} hours room-time)`,
-    `   Total Residents Reached:     ${result.metrics.personSlots} person-slots`,
-    `   Unmet Requests:              ${result.metrics.unmet} sessions dropped due to energy limits`,
-    '------------------------------------------------------------------------',
-    '2. 24-HOUR CHRONOLOGICAL OPERATIONS AGENDA',
-    '   TIME          ROOM                    GROUP (LEVEL, POP)         WATTS  WINDOW',
+  const { residentsAffected, residentsServed } = calculateOperationalMetrics(scenario, result);
+  const bookings = consolidateRunSheetBookings(scenario, result);
+  const { sessions, unmet, peakW, kwh } = result.metrics;
+  const lines = [
+    'SECOND SUN — SHIFT HANDOVER',
+    `Fictional scenario · ${planningDay}`,
+    scenario.title,
+    `Policy: ${policies[policy].name}. ${policies[policy].rule}`,
+    '',
+    `Sessions: ${sessions} of ${sessions + unmet} half-hour requests booked · ${unmet} unmet`,
+    `Residents with at least one session: ${residentsServed} of ${residentsAffected}`,
+    `Energy: ${kwh.toFixed(2)} of ${scenario.budgetKWh.toFixed(2)} kWh`,
+    `Peak load: ${peakW} of ${scenario.peakW} W`,
+    '',
+    'ROOM BOOKINGS',
   ];
 
-  for (const asg of sorted) {
-    const room = roomMap.get(asg.roomId);
-    const cohort = cohortMap.get(asg.cohortId);
-    const isPref = cohort ? cohort.preferredSlots.includes(asg.slotIndex) : false;
-    const timeStr = `${fmtT(asg.slotIndex)}–${fmtT((asg.slotIndex + 1) % 48)}`.padEnd(13);
-    const roomStr = `${room?.name ?? asg.roomId} (L${room?.locationLevel ?? '?'})`.padEnd(24);
-    const groupStr = `${cohort?.name ?? asg.cohortId} (L${cohort?.level ?? '?'}, ${cohort?.populationPeople ?? '?'}p)`.padEnd(27);
-    const powerStr = `${asg.actualPowerWatts}W`.padEnd(7);
-    const windowStr = isPref ? '★ Preferred' : 'Off-Peak';
-    lines.push(`   ${timeStr} ${roomStr} ${groupStr} ${powerStr} ${windowStr}`);
+  if (bookings.length === 0) lines.push('No sessions scheduled.');
+  for (const booking of bookings) {
+    lines.push(
+      `${fmtT(booking.startSlot)}–${fmtT(booking.endSlot)} · ${booking.roomName} (Level ${booking.roomLevel ?? '?'})`,
+      `  ${booking.cohortName} · ${booking.cohortPopulation}/${booking.roomCapacity} people · ${booking.powerWatts} W · ${booking.preferredSummary}`,
+    );
+  }
+  for (const room of scenario.rooms) {
+    if (!room.enabled) lines.push(`Offline: ${room.name}`);
+    else if (!bookings.some(booking => booking.roomId === room.id)) lines.push(`Unscheduled: ${room.name}`);
   }
 
-  lines.push('------------------------------------------------------------------------');
-  lines.push('3. SECTOR ACCESS & UNMET DEMAND BREAKDOWN');
-  for (const c of scenario.cohorts) {
-    const got = result.got[c.id] ?? 0;
-    const req = c.requestedSlots;
-    const pct = req > 0 ? Math.round((got / req) * 100) : 100;
-    const why = result.why[c.id] ?? 'Accommodated under policy constraints.';
-    lines.push(`   • Level ${c.level} — ${c.name} (${c.populationPeople} residents):`);
-    lines.push(`     Allocated: ${got}/${req} sessions (${pct}%)`);
-    lines.push(`     Notes:     ${why}`);
+  lines.push('', 'REQUESTS BY CREW');
+  for (const cohort of scenario.cohorts) {
+    lines.push(`Level ${cohort.level} · ${cohort.name}: ${result.got[cohort.id]}/${cohort.requestedSlots} sessions`);
+    if (result.got[cohort.id] < cohort.requestedSlots) lines.push(`  ${result.why[cohort.id]}`);
   }
 
-  lines.push('------------------------------------------------------------------------');
-  lines.push('4. SHIFT SUPERVISOR HANDOVER NOTES');
-  lines.push('   [X] Life-safety, exit, and corridor emergency lighting are isolated circuits');
-  lines.push('       excluded from this discretionary budget by design.');
-  lines.push('   [X] All room capacities verified against cohort group sizes.');
-  lines.push('   [X] No concurrent room booking overlaps observed.');
-  lines.push('   Supervisor Sign-off: __________________________  Station ID: ________');
-  lines.push('========================================================================');
-
+  lines.push('', 'Emergency, exit and essential task lighting are outside this plan.');
   return lines.join('\n');
 }

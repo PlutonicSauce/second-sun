@@ -1,4 +1,5 @@
 import React from 'react';
+import { PlanDialog } from './PlanDialog';
 
 interface HowItWorksModalProps {
   isOpen: boolean;
@@ -9,18 +10,11 @@ export const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose} role="presentation">
-      <div
-        className="modal-card"
-        onClick={e => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
+    <PlanDialog titleId="modal-title" onClose={onClose}>
         <div className="modal-header">
           <div>
             <h2 id="modal-title" className="modal-title">
-              How SECOND SUN Works — Architectural & Scientific Transparency
+              How scheduling works
             </h2>
             <p className="modal-subtitle">
               Fairness-aware, resource-constrained scheduling under subterranean energy rationing.
@@ -41,12 +35,9 @@ export const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClos
           <section className="modal-section">
             <h3 className="section-title">1. The Core Dilemma in the Hollow</h3>
             <p>
-              In the subterranean habitat of Level 9, residents live and work without natural sunlight.
-              Access to communal bright-light rooms is vital for circadian entrainment, alertness, and
-              morale. However, electricity is strictly rationed due to geothermal supply constraints.
-              When total requested light exceeds available kilowatt-hours, arbitrary or first-come
-              allocations cause entire shift groups (especially off-shift or smaller cohorts) to receive
-              zero access.
+              In the fictional Hollow, residents share bright-light rooms because they live without sunlight.
+              During rationing, crews can miss out on room time. The scheduler tests how different
+              allocation rules distribute that shortage.
             </p>
           </section>
 
@@ -107,13 +98,12 @@ export const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClos
                 </li>
                 <li>
                   <strong>Planning Assumptions vs Clinical Truth:</strong> “Preferred exposure windows” in this
-                  app are user-configured planning assumptions based on work/wake schedules, not validated
+                  app are synthetic planning assumptions based on work/wake schedules, not validated
                   clinical prescriptions.
                 </li>
                 <li>
-                  <strong>Untouchable Safety Lighting:</strong> Emergency egress, exit lighting, corridor safety,
-                  and life-critical monitors are powered by separate isolated circuits and are{' '}
-                  <strong>never</strong> throttled or scheduled as discretionary load. Life-safety circuits are isolated from this budget by design.
+                  <strong>Scope:</strong> The plan covers discretionary bright-light rooms.
+                  Emergency, exit and essential task lighting are outside the allocation.
                 </li>
               </ul>
             </div>
@@ -177,7 +167,6 @@ export const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClos
             Got it, return to operations
           </button>
         </div>
-      </div>
-    </div>
+    </PlanDialog>
   );
 };

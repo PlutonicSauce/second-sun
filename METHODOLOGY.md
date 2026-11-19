@@ -20,7 +20,7 @@ One planning day is divided into **48 half-hour slots**, indexed 0–47:
 | … | … |
 | 47 | 23:30 |
 
-Overnight windows (e.g. slot 44 → slot 4) are expressed using the `rng(a, b)` helper, which wraps around 47→0. When `a === b` the range is empty.
+Overnight windows (e.g. slot 44 → slot 4) are expressed using the `rng(a, b)` helper, which wraps around 47→0. When `a === b` the range is empty. The run sheet and exports use `24:00` for the end of the final slot.
 
 ---
 
@@ -72,7 +72,7 @@ Cohorts are served in **input order**. For each cohort, the engine iterates thro
 
 > **CLEARLY LABELLED: "Illustrative Directorate Policy (Simulated) — fictional priority rule for comparison only. This does not represent actual government policy or behavior."**
 
-Identical to First-Come, except cohorts are **pre-sorted by habitat `level` ascending** (upper levels like Level 2–4 get served first; deep subterranean infrastructure crews on Level 7–9 are placed at the back of the queue), then by `id` for ties. Same energy, same rooms, same hard physical constraints — only the service order changes. This directly models how administrative hierarchy advantages upper levels while starving deep shaft workers under rationed power.
+Identical to First-Come, except cohorts are **pre-sorted by habitat `level` ascending** (upper levels like Level 2–4 get served first; deep subterranean infrastructure crews on Level 7–9 are placed at the back of the queue), then by `id` for ties. The physical and energy constraints are shared with the other policies. The effect of the service order depends on the scenario.
 
 ---
 
@@ -99,6 +99,8 @@ Before any assignment is recorded, all of the following must hold:
 `validate(scenario, result)` re-checks every hard constraint after the fact and returns an array of violation strings (empty = fully valid). It independently verifies:
 
 - Unknown cohort or room references
+- Slot indices outside 0–47 or fractional indices
+- Assignment wattage differs from the room specification
 - Disabled rooms used
 - Assignments outside `allowedSlots`
 - Assignments inside `quietSlots`
@@ -125,7 +127,7 @@ Before any assignment is recorded, all of the following must hold:
 | **peakW** | Maximum simultaneous watts observed |
 | **personSlots** | Σ (populationPeople × assignedSlots) across all cohorts |
 
-**Preferred-window coverage** is reported separately: the fraction of a cohort's assignments that fall within their `preferredSlots`. These slots are **user-entered planning assumptions** (shift schedules, estimated wake/sleep times) — they are **not** clinical recommendations and do not encode circadian dose targets.
+**Preferred-window coverage** is reported separately: the fraction of a cohort's assignments that fall within their `preferredSlots`. These slots are **synthetic planning assumptions** (shift schedules, estimated wake/sleep times) — they are **not** clinical recommendations and do not encode circadian dose targets.
 
 ---
 
@@ -147,9 +149,9 @@ Before any assignment is recorded, all of the following must hold:
 
 - **No health predictions.** Results are scheduling outcomes, not medical recommendations.
 - **No circadian dose calculations.** No melanopic EDI, no CSER, no biological metrics.
-- **No CCT-as-proxy.** CCT is not a valid biological proxy for circadian stimulus (see citation [4] in README).
-- **No safety/emergency lighting.** Exit routes, emergency egress, and essential task lighting are explicitly excluded from this budget and control plane (see OSHA 1910.37).
-- **Preferred slots are planning assumptions, not prescriptions.** Users enter shift and wake/sleep times; the app uses them to report preferred-window hit rate, not to make health claims.
+- **No CCT-as-proxy.** CCT is not a valid biological proxy for circadian stimulus.
+- **No safety/emergency lighting.** Exit routes, emergency egress, and essential task lighting are explicitly excluded from this budget and control plane.
+- **Preferred slots are planning assumptions, not prescriptions.** The preset defines shift and preferred times. The app reports preferred-window fit.
 
 ---
 
@@ -158,8 +160,8 @@ Before any assignment is recorded, all of the following must hold:
 | Limitation | Detail |
 |---|---|
 | **Whole-cohort booking** | A cohort occupies a room for a full slot as a group. Splitting a cohort across multiple rooms in one slot is not modelled. This is a simplification that may underutilise rooms. |
-| **One-day horizon** | The scheduler optimises a single planning day. No multi-day carry-over. |
-| **No live data** | All inputs are user-entered or preset. No sensor feeds, occupancy sensors, or real-time grid telemetry. |
+| **One-day horizon** | The scheduler models a single planning day. No multi-day carry-over. |
+| **No live data** | The app uses preset cohorts and rooms with adjustable budget and room availability. |
 | **Heuristic, not optimal** | The fair algorithm may not find the globally optimal allocation for every input. A different ordering could occasionally yield a higher minimum coverage. |
 | **Deterministic** | Same input always produces the same output. No randomisation or stochastic search. |
 | **Integer energy only** | Fractional watt-minute values are rounded at scenario load; this introduces negligible (< 1 Wm) rounding. |

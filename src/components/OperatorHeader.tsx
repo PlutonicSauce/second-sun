@@ -14,21 +14,15 @@ export const OperatorHeader: React.FC<OperatorHeaderProps> = ({
   onReset,
 }) => {
   return (
-    <header className="operator-header">
+    <header className="operator-header no-print">
       <div className="header-inner">
         {/* Brand & System Lockup */}
         <div className="brand-group">
           <div className="brand-dot" aria-hidden="true" />
           <div className="brand-text">
             <span className="brand-title">SECOND SUN</span>
-            <span className="brand-subtitle">FACILITY PLANNING SYSTEM · THE HOLLOW 2087</span>
+            <span className="brand-subtitle">THE HOLLOW · 2087</span>
           </div>
-        </div>
-
-        {/* 24-Hour Horizon Pill */}
-        <div className="horizon-indicator" title="24-Hour Planning Cycle">
-          <span className="horizon-pulse" />
-          <span className="horizon-text">CYCLE 2087-D42 · 24-HOUR PLANNING HORIZON</span>
         </div>
 
         {/* Global Operational Actions */}
@@ -39,7 +33,7 @@ export const OperatorHeader: React.FC<OperatorHeaderProps> = ({
             onClick={onOpenWhyThisSchedule}
             title="Inspect why this schedule was selected over institutional baselines"
           >
-            Why This Schedule?
+            Compare policies
           </button>
 
           <button
@@ -48,7 +42,7 @@ export const OperatorHeader: React.FC<OperatorHeaderProps> = ({
             onClick={onOpenAboutScience}
             title="Review scientific constraints, citations, and non-clinical disclosures"
           >
-            About & Science
+            How it works
           </button>
 
           <button

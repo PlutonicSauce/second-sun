@@ -1,84 +1,62 @@
-import React from 'react';
 import type { EmergencyScheduleDelta } from '../domain/runsheet';
 
 interface EmergencyDeltaBannerProps {
   delta: EmergencyScheduleDelta;
+  normalBudgetKWh: number;
+  emergencyBudgetKWh: number;
   onRestore: () => void;
   onAcknowledge: () => void;
 }
 
-export const EmergencyDeltaBanner: React.FC<EmergencyDeltaBannerProps> = ({
+export function EmergencyDeltaBanner({
   delta,
+  normalBudgetKWh,
+  emergencyBudgetKWh,
   onRestore,
   onAcknowledge,
-}) => {
+}: EmergencyDeltaBannerProps) {
   return (
-    <section className="emergency-delta-banner no-print" role="alert" aria-live="assertive" aria-label="Generator Failure Incident Delta">
+    <section className="emergency-delta-banner no-print" aria-labelledby="emergency-title">
       <div className="emergency-banner-top">
         <div className="emergency-banner-title-group">
-          <div className="emergency-tag-row">
-            <span className="emergency-pulse" />
-            <span className="emergency-tag">GRID CONTINGENCY ACTIVE · GEOTHERMAL GENERATOR TRIP</span>
-          </div>
-          <h2 className="emergency-title">Generator Failure Simulation Active</h2>
+          <h3 className="emergency-title" id="emergency-title">What changes during generator failure?</h3>
           <p className="emergency-subtitle">
-            Discretionary lighting power dropped from {delta.previousKWh.toFixed(2)} kWh to {delta.newKWh.toFixed(2)} kWh. Below is the real-time operational impact calculated by the scheduling engine.
+            Lighting budget: {normalBudgetKWh.toFixed(2)} → {emergencyBudgetKWh.toFixed(2)} kWh.
+            Both plans use the selected policy and room settings.
           </p>
         </div>
-
         <div className="emergency-banner-actions">
-          <button type="button" className="btn-apple-secondary" onClick={onAcknowledge}>
-            Acknowledge Emergency Plan
-          </button>
-          <button type="button" className="btn-emergency-restore" onClick={onRestore}>
-            ↺ Restore Previous Schedule
-          </button>
+          <button type="button" className="btn-apple-secondary" onClick={onAcknowledge}>Hide changes</button>
+          <button type="button" className="btn-emergency-restore" onClick={onRestore}>Restore baseline budget</button>
         </div>
       </div>
 
-      {/* High-Level Impact Telemetry Strip */}
       <div className="emergency-stats-strip">
         <div className="emergency-stat-item">
-          <span className="stat-delta text-danger">-{delta.lostSessions} Sessions</span>
-          <span className="stat-label">Cancelled Tomorrow ({delta.lostSessions * 30} min total)</span>
+          <span className="stat-delta">{delta.previousSessions} → {delta.newSessions}</span>
+          <span className="stat-label">Half-hour sessions</span>
         </div>
-        <div className="stat-divider" aria-hidden="true" />
         <div className="emergency-stat-item">
-          <span className="stat-delta text-danger">-{delta.lostPersonSessions} Person-Sessions</span>
-          <span className="stat-label">Reduced Resident Access</span>
-        </div>
-        <div className="stat-divider" aria-hidden="true" />
-        <div className="emergency-stat-item">
-          <span className="stat-delta text-danger">-{delta.lostKWh.toFixed(2)} kWh</span>
-          <span className="stat-label">Power Load Shed</span>
+          <span className="stat-delta">{delta.previousKWh.toFixed(2)} → {delta.newKWh.toFixed(2)} kWh</span>
+          <span className="stat-label">Energy used by the schedule</span>
         </div>
       </div>
 
-      {/* Cohort-Level Impact Breakdown */}
-      <div className="emergency-cohorts-breakdown">
-        <span className="breakdown-heading">Impact on Subterranean Sectors:</span>
+      {delta.cohortDeltas.length === 0 ? (
+        <p className="emergency-subtitle">Every crew keeps its session count at this budget.</p>
+      ) : (
         <div className="breakdown-grid">
-          {delta.cohortDeltas.map(cd => (
-            <div
-              key={cd.cohortId}
-              className={`breakdown-card ${cd.isBlackedOut ? 'card-blackout' : 'card-reduced'}`}
-            >
-              <div className="breakdown-card-top">
-                <span className="breakdown-crew-name">{cd.cohortName}</span>
-                <span className="breakdown-crew-level">Level {cd.cohortLevel} · {cd.cohortPopulation} crew</span>
-              </div>
+          {delta.cohortDeltas.map(change => (
+            <div key={change.cohortId} className="breakdown-card">
+              <span className="breakdown-crew-name">Level {change.cohortLevel} · {change.cohortName}</span>
               <div className="breakdown-card-bottom">
-                <span className="breakdown-change">
-                  {cd.previousSessions} → {cd.newSessions} sessions ({cd.sessionsDelta})
-                </span>
-                {cd.isBlackedOut && (
-                  <span className="badge-blackout">Completely Blacked Out</span>
-                )}
+                <span className="breakdown-change">{change.previousSessions} → {change.newSessions} sessions</span>
+                {change.isBlackedOut && <span className="badge-blackout">Loses all room time</span>}
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
     </section>
   );
-};
+}

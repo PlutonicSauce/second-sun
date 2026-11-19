@@ -384,3 +384,60 @@ describe('multilevel scenario: Directorate upper-level favoritism & room accessi
     }
   });
 });
+
+describe('scenario and assignment validation regressions', () => {
+  it('rejects out-of-range, fractional and non-finite range endpoints', () => {
+    expect(() => rng(48, 2)).toThrow(RangeError);
+    expect(() => rng(1, 2.5)).toThrow(RangeError);
+    expect(() => rng(NaN, 4)).toThrow(RangeError);
+  });
+
+  it.each([0, 0.8, 1.92, 3.2])('validates all policies at %s kWh, including with a room offline', budgetKWh => {
+    const scenario = { ...multilevel(), budgetKWh };
+    for (const enabled of [true, false]) {
+      scenario.rooms[2].enabled = enabled;
+      for (const policy of ['fair', 'directorate', 'first-come'] as const) {
+        expect(validate(scenario, solve(scenario, policy))).toEqual([]);
+      }
+    }
+  });
+
+  it('rejects bad budgets, duplicate IDs, invalid room specs and malformed cohort requests', () => {
+    const invalidScenarios = [
+      { ...toy(), budgetKWh: NaN },
+      { ...toy(), budgetKWh: -1 },
+      { ...toy(), peakW: 0 },
+      { ...toy(), rooms: [...toy().rooms, ...toy().rooms] },
+    ];
+
+    const badRoom = toy();
+    badRoom.rooms[0].brightModeWatts = 0;
+    const badCapacity = toy();
+    badCapacity.rooms[0].capacityPeople = 0;
+    const badWindow = toy();
+    badWindow.cohorts[0].quietSlots = [48];
+    const badRequest = toy();
+    badRequest.cohorts[0].requestedSlots = 1.5;
+    for (const scenario of [...invalidScenarios, badRoom, badCapacity, badWindow, badRequest]) {
+      expect(() => solve(scenario, 'fair')).toThrow(RangeError);
+    }
+  });
+
+  it('enforces the room-side access list for all policies', () => {
+    const scenario = toy();
+    const existing = solve(scenario, 'fair');
+    scenario.rooms[0].permittedCohortIds = [];
+    expect(validate(scenario, existing)).toContain('room access');
+    for (const policy of ['fair', 'directorate', 'first-come'] as const) {
+      expect(solve(scenario, policy).assignments).toEqual([]);
+    }
+  });
+
+  it('flags forged wattage and still checks the cap using actual room watts', () => {
+    const scenario = toy();
+    const schedule = solve(scenario, 'fair');
+    scenario.budgetKWh = 0;
+    schedule.assignments[0].actualPowerWatts = -10000;
+    expect(validate(scenario, schedule)).toEqual(expect.arrayContaining(['incorrect room wattage', 'energy cap']));
+  });
+});

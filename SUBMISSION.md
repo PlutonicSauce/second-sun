@@ -1,47 +1,21 @@
-# SECOND SUN — Submission
+# SECOND SUN
 
-## Hackathon Metadata
+Patriot HackFest Fall 2026 · Life Underground
 
-| Field | Value |
-|---|---|
-| **Event** | Patriot HackFest Fall 2026 |
-| **Deadline** | November 20, 2026 — 11:00 PM ET |
-| **Track** | Life Underground |
-| **Challenges addressed** | #2 — Unfair electricity allocation; #11 — Life without sunlight |
-| **Project name** | SECOND SUN |
-| **Tech stack** | Vite 6, React 19, TypeScript 5, Vitest 2 |
-| **Backend** | None (pure client-side computation) |
-| **Source URL** | https://github.com/PlutonicSauce/second-sun |
-| **Live Demo URL** | https://second-sun-rho.vercel.app |
-| **Team** | Seshank Mallireddigari |
+Seshank Mallireddigari
 
----
+In the Hollow, an underground settlement with no sunlight, residents share bright-light rooms around their shifts. When geothermal power is rationed, the order in which crews get booked determines who still has access. SECOND SUN lets an operator compare those choices and turn one into tomorrow’s room schedule.
 
-## Description
+The app runs three policies against the same room capacities, shift windows, access rules and electricity limits. The fictional Directorate serves upper levels first. First-come fills requests in entry order. SECOND SUN gives the next feasible slot to the crew with the lowest share of its request filled. In the opening simulation, the Directorate books six of 18 requested sessions and gives the two deepest crews zero. SECOND SUN books eight and gives every requesting crew some room time. Both outcomes come from the same TypeScript scheduler.
 
-SECOND SUN is a fairness-aware scheduling tool that distributes limited access to shared bright-light rooms among shift-working underground residents under a strict discretionary electricity budget. It computes transparent, constraint-satisfying allocations using a greedy progressive-filling heuristic, compares three allocation policies (fairness-aware, first-come, illustrative Directorate) under identical constraints, and shows exactly who is underserved and why. All results come from the actual scheduling engine — no hardcoded values. Built with Vite + React + TypeScript.
+An operator can take rooms offline or simulate a generator failure, see which crews lose time, and export the recalculated schedule as a printable run sheet, CSV, JSON or a shift handover. The scheduling pattern could also help plan access to shared facilities with limited power, such as remote worksites. This prototype uses a fixed fictional scenario and a greedy heuristic. Preferred times are planning assumptions. Emergency, exit and essential task lighting are outside the allocation.
 
----
+- [Source on GitHub](https://github.com/PlutonicSauce/second-sun)
+- [Existing public demo URL](https://second-sun-rho.vercel.app)
+- [75-second recording script](./DEMO_SCRIPT.md)
 
-## What Makes It Distinct
+## Before submitting
 
-- **Hard constraints, not approximations.** Energy budget, instantaneous peak power, room capacity, cohort access permissions, and time-window restrictions are all enforced simultaneously. Invalid inputs are rejected; every output passes `validate()`.
-- **Policy comparison.** Three allocation strategies run against identical inputs. The gap in minimum coverage between policies is the core visual argument.
-- **Transparent heuristic.** The algorithm is described exactly: a greedy progressive-filling heuristic, not a claimed optimal solver. Limitations are documented in-app and in METHODOLOGY.md.
-- **No medical claims.** Preferred slots are user-entered planning assumptions. The app makes no circadian or health predictions.
-
----
-
-## Submission Checklist
-
-- [x] Replace team member placeholder with actual names
-- [x] Add GitHub repository URL
-- [ ] Confirm submission platform URL and form requirements
-- [x] Verify `npm run build` produces a clean production bundle
-- [x] Deploy to Vercel for public demo URL: https://second-sun-rho.vercel.app
-- [ ] Attach demo video (60–90 s, see DEMO_SCRIPT.md)
-- [ ] Attach this SUBMISSION.md or paste description into submission form
-
----
-
-> _Submission platform requirements to be confirmed by the team._
+1. Confirm the portal, deadline and required fields with the organizer. The team handoff lists Friday, November 20, 2026 at 11:00 PM Eastern.
+2. Review the final-review branch. After approval, publish the reviewed revision through the existing deployment and verify the public URL from a judge’s browser.
+3. Record the demo, then submit the description, demo link, video and source link in the verified portal.
