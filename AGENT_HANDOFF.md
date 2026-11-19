@@ -1,9 +1,28 @@
 # SECOND SUN — Agent Handoff
 
-> Last updated: Nov 18, 2026 (Milestone: Correctness, Usability & Emergency Contingency Refinements)  
+> Last updated: Nov 18, 2026 (Milestone: Design Guide Audit — accessibility, copy, font sizes, focus styles)  
 > Project: SECOND SUN  
 > Event: Patriot HackFest Fall 2026, Life Underground Track  
 > Submission Deadline: Friday, November 20, 2026, 11:00 PM Eastern  
+---
+
+## 0. Latest: Design Guide Audit (Commit 2d5c3ff)
+
+Applied the pasted design-guide checklist to the existing operator experience:
+
+### Changes Made
+1. **OSHA compliance references removed** — `HowItWorksModal.tsx` line 116: removed "(OSHA 1910.37 compliant)" from the life-safety lighting sentence. `export.ts` section header changed from "SUPERVISOR COMPLIANCE & SAFETY ASSURANCES" → "SHIFT SUPERVISOR HANDOVER NOTES"; OSHA text replaced with factual language. The reference link in §5 is kept as a legitimate citation.
+2. **Font sizes raised** — 31 `font-size` declarations below 13px were bumped: `0.62rem`/`0.65rem` → `0.78rem`, `0.68rem`/`0.70rem`/`0.72rem`/`0.74rem` → `0.80rem`, `0.75rem` → `0.82rem`. All readable at 16px base.
+3. **Focus-visible styles** — Global `*:focus-visible` rule added with amber `2px` outline. Browser default `:focus` outline suppressed to avoid double rings.
+4. **`aria-live="assertive"`** added to `EmergencyDeltaBanner` section element. Screen readers now announce the emergency delta as soon as it appears.
+5. **Mobile room grid** — `.rooms-control-grid` minmax lowered from 280px → 240px so cards don't overflow on 375px viewports.
+
+### Verification
+- `npm run typecheck`: 0 errors  
+- `npm run lint`: 0 errors, 0 warnings  
+- `npm test`: 48/48 PASS  
+- `npm run build`: SUCCESS 363ms  
+- `git push origin main`: SHA `2d5c3ff` confirmed at remote
 
 ---
 
