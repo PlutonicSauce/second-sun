@@ -37,6 +37,17 @@ body {
 }
 
 /* =========================================================================
+   GLOBAL: FOCUS STYLES
+   ========================================================================= */
+/* Remove browser default and replace with intentional amber focus ring */
+*:focus { outline: none; }
+*:focus-visible {
+  outline: 2px solid var(--accent-amber);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* =========================================================================
    1. APP SHELL & LAYOUT
    ========================================================================= */
 .operator-app-shell {
@@ -123,7 +134,7 @@ body {
 }
 
 .brand-subtitle {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.04em;
   color: var(--text-secondary);
@@ -148,7 +159,7 @@ body {
 }
 
 .horizon-text {
-  font-size: 0.68rem;
+  font-size: 0.80rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--text-secondary);
@@ -198,7 +209,7 @@ body {
   background: transparent;
   border: none;
   color: var(--text-tertiary);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   padding: 0.35rem 0.5rem;
   cursor: pointer;
   transition: color 0.2s ease;
@@ -218,7 +229,7 @@ body {
 }
 
 .hero-eyebrow {
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -266,7 +277,7 @@ body {
 }
 
 .spec-label {
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
@@ -327,7 +338,7 @@ body {
 }
 
 .emergency-tag {
-  font-size: 0.68rem;
+  font-size: 0.80rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -393,7 +404,7 @@ body {
 }
 
 .stat-label {
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   color: #a1a1a6;
 }
 
@@ -410,7 +421,7 @@ body {
 }
 
 .breakdown-heading {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -451,7 +462,7 @@ body {
 }
 
 .breakdown-crew-level {
-  font-size: 0.7rem;
+  font-size: 0.80rem;
   color: #a1a1a6;
 }
 
@@ -468,7 +479,7 @@ body {
 }
 
 .badge-blackout {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 700;
   padding: 0.15rem 0.4rem;
   border-radius: var(--radius-pill);
@@ -662,7 +673,7 @@ body {
 }
 
 .control-eyebrow {
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -683,7 +694,7 @@ body {
 
 .rooms-control-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
 }
 
@@ -725,7 +736,7 @@ body {
 }
 
 .room-status-badge {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 600;
   padding: 0.12rem 0.45rem;
   border-radius: var(--radius-pill);
@@ -810,7 +821,7 @@ body {
 }
 
 .runsheet-eyebrow {
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -968,7 +979,7 @@ body {
 }
 
 .window-pill {
-  font-size: 0.74rem;
+  font-size: 0.80rem;
   font-weight: 600;
   padding: 0.22rem 0.65rem;
   border-radius: var(--radius-pill);
@@ -1116,7 +1127,7 @@ body {
 }
 
 .unmet-crew-meta {
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   color: var(--text-secondary);
 }
 
@@ -1134,7 +1145,7 @@ body {
 }
 
 .unmet-stat-label {
-  font-size: 0.68rem;
+  font-size: 0.80rem;
   color: var(--text-secondary);
 }
 
@@ -1166,7 +1177,7 @@ body {
 }
 
 .unmet-timing-note {
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   color: var(--text-tertiary);
 }
 
@@ -1185,7 +1196,7 @@ body {
 }
 
 .equity-badge {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   padding: 0.2rem 0.5rem;
@@ -1219,7 +1230,7 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   color: var(--text-tertiary);
 }
 
@@ -1280,7 +1291,7 @@ body {
 }
 
 .modal-eyebrow {
-  font-size: 0.68rem;
+  font-size: 0.80rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1373,7 +1384,7 @@ body {
 }
 
 .preview-label {
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--text-secondary);
@@ -1386,7 +1397,7 @@ body {
   border-radius: var(--radius-sm);
   padding: 1rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   line-height: 1.45;
   color: #f1f5f9;
   overflow-x: auto;
@@ -1483,7 +1494,7 @@ body {
 }
 
 .box-pill {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
   padding: 0.15rem 0.45rem;
@@ -1515,7 +1526,7 @@ body {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 600;
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-pill);
@@ -1566,7 +1577,7 @@ body {
 }
 
 .tab-badge-row .badge {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 600;
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-pill);
@@ -1589,7 +1600,7 @@ body {
 }
 
 .tab-sub {
-  font-size: 0.7rem;
+  font-size: 0.80rem;
   color: var(--text-secondary);
   line-height: 1.35;
 }
@@ -1598,7 +1609,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   color: var(--text-secondary);
   margin-top: 0.2rem;
 }
@@ -1631,7 +1642,7 @@ body {
 .col-metric {
   text-align: left;
   color: var(--text-secondary);
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   text-transform: uppercase;
   font-weight: 600;
   width: 40%;
@@ -1659,7 +1670,7 @@ body {
 }
 
 .metric-desc {
-  font-size: 0.7rem;
+  font-size: 0.80rem;
   color: var(--text-tertiary);
   font-weight: 400;
   margin-top: 0.15rem;
@@ -1694,7 +1705,7 @@ body {
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   font-weight: 600;
-  font-size: 0.72rem;
+  font-size: 0.80rem;
   text-transform: uppercase;
 }
 

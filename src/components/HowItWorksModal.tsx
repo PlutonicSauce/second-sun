@@ -113,7 +113,7 @@ export const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClos
                 <li>
                   <strong>Untouchable Safety Lighting:</strong> Emergency egress, exit lighting, corridor safety,
                   and life-critical monitors are powered by separate isolated circuits and are{' '}
-                  <strong>never</strong> throttled or scheduled as discretionary load (OSHA 1910.37 compliant).
+                  <strong>never</strong> throttled or scheduled as discretionary load. Life-safety circuits are isolated from this budget by design.
                 </li>
               </ul>
             </div>

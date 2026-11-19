@@ -13,7 +13,7 @@ export const EmergencyDeltaBanner: React.FC<EmergencyDeltaBannerProps> = ({
   onAcknowledge,
 }) => {
   return (
-    <section className="emergency-delta-banner no-print" role="alert" aria-label="Generator Failure Incident Delta">
+    <section className="emergency-delta-banner no-print" role="alert" aria-live="assertive" aria-label="Generator Failure Incident Delta">
       <div className="emergency-banner-top">
         <div className="emergency-banner-title-group">
           <div className="emergency-tag-row">

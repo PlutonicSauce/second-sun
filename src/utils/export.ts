@@ -189,9 +189,9 @@ export function generateShiftHandoverBrief(
   }
 
   lines.push('------------------------------------------------------------------------');
-  lines.push('4. SUPERVISOR COMPLIANCE & SAFETY ASSURANCES');
-  lines.push('   [X] Life-safety, exit, and corridor emergency lighting remain hard-isolated');
-  lines.push('       from this discretionary budget (OSHA 1910.37 compliant).');
+  lines.push('4. SHIFT SUPERVISOR HANDOVER NOTES');
+  lines.push('   [X] Life-safety, exit, and corridor emergency lighting are isolated circuits');
+  lines.push('       excluded from this discretionary budget by design.');
   lines.push('   [X] All room capacities verified against cohort group sizes.');
   lines.push('   [X] No concurrent room booking overlaps observed.');
   lines.push('   Supervisor Sign-off: __________________________  Station ID: ________');
