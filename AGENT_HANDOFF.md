@@ -1,9 +1,36 @@
 # SECOND SUN — Agent Handoff
 
-> Last updated: Nov 18, 2026 (Milestone: Design Guide Audit — accessibility, copy, font sizes, focus styles)  
+> Last updated: Nov 18, 2026 (Milestone: Subterranean Visualizer & Primary Story Integration)  
 > Project: SECOND SUN  
 > Event: Patriot HackFest Fall 2026, Life Underground Track  
 > Submission Deadline: Friday, November 20, 2026, 11:00 PM Eastern  
+
+---
+
+## 00. Latest: Subterranean Level Visualizer & Primary Story Integration (Commit 9a600b1)
+
+Replaced the generic AI-dashboard look with a bespoke, purposeful subterranean operations experience:
+
+### Key Transformations
+1. **The Core Story is Now Front & Center (`SubterraneanVisualizer.tsx`):**
+   - Moved the central policy comparison (SECOND SUN vs. Directorate vs. First-Come) out of the hidden modal and placed it directly as the centerpiece on the main screen.
+   - Built a live vertical architectural cross-section of the Hollow (Levels 2, 3, 5, 7, 9) showing depth meters (`-180m` to `-1480m`), population, wake windows, and warm golden daylight bars.
+   - When switching to **Directorate Baseline**, the bottom tiers (Levels 5, 7, 9) turn to stark pitch black (`0 MIN · TOTAL DARKNESS · Deprioritized under upper-tier Directorate rules`), with the Upper vs. Deep Level Inequality Gap spiking to `+100%`.
+   - When switching to **SECOND SUN**, available power is distributed proportionally, giving deep ventilation and drilling crews protected daylight before their shifts.
+2. **Eradicated Robotic Solver Debug Text in Crew Inquiry Reference (`UnmetDemandGuide.tsx`):**
+   - Replaced raw diagnostic strings (`"Unmet 2 of 3. Of 16 eligible options..."`) with respectful, human-grounded explanations for shift supervisors, while retaining the raw diagnostic in an optional technical hover note.
+3. **Visual Identity & Atmosphere:**
+   - Apple/Linear-grade aesthetic with warm golden solar accents (`#f59e0b`, `#fbbf24`) contrasted against deep volcanic rock (`#0c0c0e`, `#111114`).
+   - Integrated energy slider, scenario presets, and contingency controls directly into the cross-section console.
+
+### Verification Status
+- `npm run typecheck`: 0 errors
+- `npm run lint`: 0 errors, 0 warnings
+- `npm test`: 48/48 PASS
+- `node engine-smoke.test.cjs`: 6/6 PASS
+- `npm run build`: SUCCESS (389ms)
+- `node scripts/verify-browser.mjs`: 13/13 Playwright browser checks PASS
+- Pushed to `origin main` (commit `9a600b1`)
 ---
 
 ## 0. Latest: Design Guide Audit (Commit 2d5c3ff)
