@@ -1,5 +1,37 @@
 # SECOND SUN — Agent Handoff
 
+## November 19, 2026 — Final review
+
+- Branch: `codex/final-review`, based on verified `origin/main` at `92fc4bf`.
+- Reviewed implementation: `4a30e4b6de80a485a84314754310230e00ab47a9`. The handoff is a separate documentation commit.
+- The opening screen separates session requests from resident access. Policy comparisons show bookings and preferred times by crew. The run sheet identifies the active policy and links to print, CSV, JSON and handover.
+- Generator failure caps the current baseline at 0.80 kWh. The comparison applies the current policy and room settings to both budgets. Restoring power lifts the ceiling and retains the current baseline and room settings.
+- The scheduler and independent validator now check both sides of room permissions. The solver rejects malformed slot windows and invalid numeric inputs. The validator checks assignment slot and room wattage. The existing three policy orderings and whole-cohort model remain in use.
+- The run sheet and handover share booking consolidation. JSON also includes consolidated bookings. CSV contains one row per half-hour assignment and includes the selected policy. The last slot ends at 24:00 throughout.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | Passed, project-reference build |
+| `npm run lint` | Passed |
+| `npm test` | 57 passed across three files |
+| `node --test engine-smoke.test.cjs` | 6 passed |
+| `npm run build` | Passed |
+| `SECOND_SUN_SCREENSHOTS=screenshots/final-review npm run test:e2e` | 9 Chromium checks passed |
+
+Reviewed 1440px and 390px screenshots, the Directorate and room-offline states, generator failure, policy and export dialogs, and the print layout. Evidence is in [screenshots/final-review](./screenshots/final-review/). Browser checks also generated a Letter-size PDF in memory.
+
+### Deployment and submission
+
+This audit verified a local production build. The existing public URL could not be verified from this environment because the network proxy blocked it. No production deployment or merge was performed. The app uses fixed cohorts, single-day plans and in-memory controls. Chromium was tested, including a mobile viewport.
+
+Highest-value next task: approve and review the branch for production, then verify the deployed demo in a judge's browser. Confirm the official portal and its required fields. The handoff deadline is Friday, November 20, 2026 at 11:00 PM Eastern. The [demo script](./DEMO_SCRIPT.md) and [submission draft](./SUBMISSION.md) are ready to use.
+
+---
+
+## Earlier milestones
+
 > Last updated: Nov 18, 2026 (Milestone: Subterranean Visualizer & Primary Story Integration)  
 > Project: SECOND SUN  
 > Event: Patriot HackFest Fall 2026, Life Underground Track  
